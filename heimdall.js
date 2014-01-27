@@ -7,8 +7,7 @@
 ****************************************************************************/
 
 //Module dependencies
-var fs   = require('fs')
-  , path = require('path');
+var fs   = require('fs');
 
 //All valid resources loaded by Heimdall
 var resources = [];
@@ -73,7 +72,7 @@ var EdmClass = function(edmtype,description,required) {
 };
 
 // --------------------------------------------------------------------------
-// Creates a pedantic route for a request
+// Creates a heimdall route for a request
 //  - Collects all predefined data into an object
 //  - Ensures strict API definition
 var route = function(name,type,method) {
@@ -122,7 +121,7 @@ var route = function(name,type,method) {
 			} else if (req.route.path.indexOf('.html')===-1) {
 				res.json(format(req.headers.host,req.url,name+'.'+type,result));
 			} else {
-				req.pedant = format(req.headers.host,req.url,name+'.'+type,result);
+				req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
 				next();
 			}
 		});
@@ -163,7 +162,7 @@ var Remove = function(name,resource,app) {
 };
 
 // --------------------------------------------------------------------------
-// Expose pedant resource calls for use by other modules 
+// Expose heimdall resource calls for use by other modules 
 var resource = Heimdall.resource = function(name,type,data,callback) {
 	resources[name+'_'+type]({name:name,type:type},data,callback);
 };
@@ -178,18 +177,18 @@ var set = Heimdall.set = function(query) {
 };
 
 // --------------------------------------------------------------------------
-// Expose pedant resource calls for use as connect/express middleware 
+// Expose heimdall resource calls for use as connect/express middleware 
 var middleware = Heimdall.middleware = function(name,type) {
 	return routes[name+'_'+type];
 };
 
 // --------------------------------------------------------------------------
-// Renders pedant middleware odata to a view 
+// Renders heimdall middleware oData to a view 
 var render = Heimdall.render = function(view) {
 	return function(req,res){
 		var data;
-		if (req.pedant) {
-			data = req.pedant.d;
+		if (req.heimdall) {
+			data = req.heimdall.d;
 		} else {
 			data = {};
 			for(var key in req.query) {
@@ -202,7 +201,7 @@ var render = Heimdall.render = function(view) {
 }
 
 // --------------------------------------------------------------------------
-// Registers all the resources for a pedant-compliant API specification 
+// Registers all the resources for a heimdall-compliant API specification 
 var register = Heimdall.register = function(filename,resource,app) {
 	if (typeof resource.name !== "string") { throw (new Error("Resource " + filename + " requires a name")); return false;}
 	if (typeof resource.description !== "string") { throw (new Error("Resource " + name + " at " + filename + " requires a description")); return false;}
@@ -220,6 +219,8 @@ var register = Heimdall.register = function(filename,resource,app) {
 	} 
 };
 
+// --------------------------------------------------------------------------
+// app.local helper functions to format data   
 
 var timedayformat = function(date) {
 	if(date instanceof Date) {
@@ -253,19 +254,23 @@ var moneyformat = function(number) {
 	return number;
 }
 
+// --------------------------------------------------------------------------
+// Heimdall Main entry point
+//  params:
+//    @path - the absolute path to the API definition files
+//    @app  - the express app
+//    @auth - optional authentication middleware
+var load = Heimdall.load = function(path,app,auth) {
 
-var load = Heimdall.load = function(path,app,authenticate) {
-
-	if (typeof authenticate==='function') security.authenticate = authenticate;
+	if (typeof auth==='function') security.authenticate = auth;
 
 	var revar = /\w+\.js$/i;
-	console.log(path)
 	var files = fs.readdirSync(path);
 	var file, name, resource;
 	for (var i=0,l=files.length;i<l;i++) {
 		file = files[i];
 		if (revar.test(file)) {
-			console.log(file);	
+			console.log('Heimdall found API specification',file);	
 			name = file.substr(0,file.indexOf(".js"));
 			resource = require(path+name);
 			register(path+name,resource,app);
@@ -304,7 +309,9 @@ new EdmType("time",		function(val) { return true; }); //TODO - validate and cast
 new EdmType("datetimeoffset",function(val) { return true; }); //TODO - validate and cast
 
 /*
-Primitive Types	Literal Form	Example
+http://www.odata.org/documentation/odata-v2-documentation/overview/#6_Primitive_Data_Types
+
+Primitive Types,Literal Form,Example
 Null		Represents the absence of a value	null	Example 1: null
 Edm.Binary	Represent fixed- or variable- length binary data	binary’[A-Fa-f0-9][A-Fa-f0-9]*’ OR X ‘[A-Fa-f0-9][A-Fa-f0-9]*’ NOTE: X and binary are case sensitive. Spaces are not allowed between binary and the quoted portion. Spaces are not allowed between X and the quoted portion. Odd pairs of hex digits are not allowed.	Example 1: X’23AB’ Example 2: binary’23ABFF’
 Edm.Boolean	Represents the mathematical concept of binary-valued logic	true | false	Example 1: true Example 2: false
