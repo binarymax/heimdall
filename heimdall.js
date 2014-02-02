@@ -220,41 +220,6 @@ var register = Heimdall.register = function(filename,resource,app) {
 };
 
 // --------------------------------------------------------------------------
-// app.local helper functions to format data   
-
-var timedayformat = function(date) {
-	if(date instanceof Date) {
-		var day = date.toLocaleString().split(' ');
-		return 	day[4] + ' - ' + day[0];
-
-	}
-	return date;
-}
-
-var dayformat = function(date) {
-	if(date instanceof Date) {
-		var day = date.toLocaleDateString();
-		return day.substr(0,day.indexOf(' '));
-	}
-	return date;
-}
-
-var dateformat = function(date) {
-	if(date instanceof Date) {
-		return date.toLocaleDateString();
-	}
-	return date;
-}
-
-var moneyformat = function(number) {
-	if(!isNaN(number)) {
-		var str = (number+0.001).toString();
-		return '$' + str.substr(0,str.length-1);
-	}
-	return number;
-}
-
-// --------------------------------------------------------------------------
 // Heimdall Main entry point
 //  params:
 //    @path - the absolute path to the API definition files
@@ -276,12 +241,6 @@ var load = Heimdall.load = function(path,app,auth) {
 			register(path+name,resource,app);
 		}
 	}
-
-	//Local render helpers
-	app.locals.dayformat = dayformat;	
-	app.locals.dateformat = dateformat;
-	app.locals.moneyformat = moneyformat;
-	app.locals.timedayformat = timedayformat;
 
 	//Chain after load:
 	return Heimdall;
