@@ -134,19 +134,31 @@ var route = function(name,type,method) {
 // --------------------------------------------------------------------------
 // Creates an oData ENTRY immutable resource, based on an API specification
 var Entry = function(name,resource,app) {
-	app.get('/'+name+'/:name/?', security.authenticate, route(name,'entry',resource.api.ENTRY));
+	if (resource.api.ENTRY.open) {
+		app.get('/'+name+'/:name/?', route(name,'entry',resource.api.ENTRY));
+	} else { 
+		app.get('/'+name+'/:name/?', security.authenticate, route(name,'entry',resource.api.ENTRY));
+	}
 };
 
 // --------------------------------------------------------------------------
 // Creates an oData COLLECTION immutable resource, based on an API specification
 var Collection = function(name,resource,app) {
-	app.get('/'+name+'/?', security.authenticate, route(name,'collection',resource.api.COLLECTION));
+	if (resource.api.COLLECTION.open) {
+		app.get('/'+name+'/?', route(name,'collection',resource.api.COLLECTION));
+	} else {
+		app.get('/'+name+'/?', security.authenticate, route(name,'collection',resource.api.COLLECTION));
+	}
 };
 
 // --------------------------------------------------------------------------
 // Creates an oData ADD mutable resource, based on an API specification
 var Add = function(name,resource,app) {
-	app.post('/'+name+'/?', security.authenticate, route(name,'add',resource.api.ADD));
+	if (resource.api.ADD.open) {
+		app.post('/'+name+'/?', route(name,'add',resource.api.ADD));
+	} else {
+		app.post('/'+name+'/?', security.authenticate, route(name,'add',resource.api.ADD));
+	}
 };
 
 // --------------------------------------------------------------------------
