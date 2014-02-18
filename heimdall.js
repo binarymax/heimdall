@@ -14,7 +14,7 @@ var resources = [];
 var routes    = [];
 
 //Default security middleware, can override
-var security  = {authenticate:function(req,res,next){next()}};
+var security  = {authenticate:function(req,res,next){next()},administrator:function(req,res,next){res.send(403)}};
 
 //Formats an oData JSON response
 var format = function(host,uri,type,records) {
@@ -136,7 +136,9 @@ var route = function(name,type,method) {
 var Entry = function(name,resource,app) {
 	if (resource.api.ENTRY.open) {
 		app.get('/'+name+'/:name/?', route(name,'entry',resource.api.ENTRY));
-	} else { 
+	} else 	if (resource.api.ENTRY.admin) {
+		app.get('/'+name+'/:name/?', security.administrator, route(name,'entry',resource.api.ENTRY));
+	} else {  
 		app.get('/'+name+'/:name/?', security.authenticate, route(name,'entry',resource.api.ENTRY));
 	}
 };
@@ -146,6 +148,8 @@ var Entry = function(name,resource,app) {
 var Collection = function(name,resource,app) {
 	if (resource.api.COLLECTION.open) {
 		app.get('/'+name+'/?', route(name,'collection',resource.api.COLLECTION));
+	} else if (resource.api.COLLECTION.admin) {
+		app.get('/'+name+'/?', security.administrator, route(name,'collection',resource.api.COLLECTION));
 	} else {
 		app.get('/'+name+'/?', security.authenticate, route(name,'collection',resource.api.COLLECTION));
 	}
@@ -156,6 +160,8 @@ var Collection = function(name,resource,app) {
 var Add = function(name,resource,app) {
 	if (resource.api.ADD.open) {
 		app.post('/'+name+'/?', route(name,'add',resource.api.ADD));
+	} else if (resource.api.ADD.admin) {
+		app.post('/'+name+'/?', security.administrator, route(name,'add',resource.api.ADD));
 	} else {
 		app.post('/'+name+'/?', security.authenticate, route(name,'add',resource.api.ADD));
 	}
@@ -164,13 +170,25 @@ var Add = function(name,resource,app) {
 // --------------------------------------------------------------------------
 // Creates an oData SAVE mutable resource, based on an API specification
 var Save = function(name,resource,app) {
-	app.put('/'+name+'/?', security.authenticate, route(name,'save',resource.api.SAVE));
+	if (resource.api.SAVE.open) {
+		app.put('/'+name+'/?', route(name,'save',resource.api.SAVE));
+	} else if (resource.api.SAVE.admin) {
+		app.put('/'+name+'/?', security.administrator, route(name,'save',resource.api.SAVE));
+	} else {
+		app.put('/'+name+'/?', security.authenticate, route(name,'save',resource.api.SAVE));
+	}
 };
 
 // --------------------------------------------------------------------------
 // Creates an oData REMOVE mutable resource, based on an API specification
 var Remove = function(name,resource,app) {
-	app['delete']('/'+name+'/:name/?', security.authenticate, route(name,'remove',resource.api.REMOVE));
+	if (resource.api.REMOVE.open) {
+		app['delete']('/'+name+'/:name/?', route(name,'remove',resource.api.REMOVE));
+	} else if (resource.api.REMOVE.admin) {
+		app['delete']('/'+name+'/:name/?', security.administrator, route(name,'remove',resource.api.REMOVE));
+	} else {
+		app['delete']('/'+name+'/:name/?', security.authenticate, route(name,'remove',resource.api.REMOVE));
+	}
 };
 
 // --------------------------------------------------------------------------
@@ -237,9 +255,10 @@ var register = Heimdall.register = function(filename,resource,app) {
 //    @path - the absolute path to the API definition files
 //    @app  - the express app
 //    @auth - optional authentication middleware
-var load = Heimdall.load = function(path,app,auth) {
+var load = Heimdall.load = function(path,app,auth,admin) {
 
 	if (typeof auth==='function') security.authenticate = auth;
+	if (typeof admin==='function') security.administrator = admin;
 
 	var revar = /\w+\.js$/i;
 	var files = fs.readdirSync(path);
