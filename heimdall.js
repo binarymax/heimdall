@@ -225,6 +225,10 @@ var render = Heimdall.render = function(view) {
 				if(req.query.hasOwnProperty(key))
 					data[key] = req.query[key];
 			}
+			for(var key in req.session) {
+				if(req.session.hasOwnProperty(key))
+					data[key] = req.session[key];
+			}
 		}
 		res.render(view,data);
 	}
