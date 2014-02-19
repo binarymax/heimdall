@@ -13,6 +13,10 @@ var fs   = require('fs');
 var resources = [];
 var routes    = [];
 
+//Environment context set by Express
+var env;
+
+
 //Default security middleware, can override
 var security  = {authenticate:function(req,res,next){next()},administrator:function(req,res,next){res.send(403)}};
 
@@ -45,6 +49,12 @@ var error = function(err,code,message) {
 			message : message,
 			innererror : err
 	}};
+	
+	if ('development' == env) {
+		//Verbose console errors for development environments 
+		console.error(oData.error);
+	}
+	
 	return oData;
 }
 
@@ -216,20 +226,26 @@ var middleware = Heimdall.middleware = function(name,type) {
 // Renders heimdall middleware oData to a view 
 var render = Heimdall.render = function(view) {
 	return function(req,res){
-		var data;
+		var data = {};
 		if (req.heimdall) {
 			data = req.heimdall.d;
 		} else {
-			data = {};
+			//Add query data to the view object
 			for(var key in req.query) {
-				if(req.query.hasOwnProperty(key))
+				if(req.query.hasOwnProperty(key)) {
 					data[key] = req.query[key];
-			}
-			for(var key in req.session) {
-				if(req.session.hasOwnProperty(key))
-					data[key] = req.session[key];
+				}
 			}
 		}
+
+		//Add session data to the view object
+		data.session = {};
+		for(var key in req.session) {
+			if(req.session.hasOwnProperty(key) && key!= 'cookie') {
+				data.session[key] = req.session[key];
+			}
+		}
+
 		res.render(view,data);
 	}
 }
@@ -276,6 +292,8 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 			register(path+name,resource,app);
 		}
 	}
+	
+	env = app.get('env');
 
 	//Chain after load:
 	return Heimdall;
