@@ -6,6 +6,8 @@ The goal of Heimdall is to provide an easy way to create reflective and secure R
 
 Heimdall uses the oData* standard for API response formatting, and EDM** for type-safety
 
+Heimdall is available for use under the MIT License
+
 ## Example
 
 Here is a simple example of a resource declaration:
@@ -179,12 +181,14 @@ Heimdall uses the oData EDM (entity data model) type system.  The available type
 	
 ## Setup
 
-When starting the app, Heimdall is passed a path that contains the API declaration files, as well as the Express app:
+When starting the app, Heimdall is passed a path that contains the API specification files and Express app object:
 
-	var app = express();
 	var api = process.cwd() + '/api/';
+	var app = express();
 	heimdall.load(api, app);
 
 
-* The oData specification can be found at http://odata.org/
-** The EDM specification details can be found at http://www.odata.org/documentation/odata-v2-documentation/overview/#6_Primitive_Data_Types
+- * The oData specification can be found at http://odata.org/
+- ** EDM details can be found at http://www.odata.org/documentation/odata-v2-documentation/overview/#6_Primitive_Data_Types
+
+###### *Made with love by Max Irwin (http://binarymax.com)*
