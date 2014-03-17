@@ -35,7 +35,7 @@ var format = function(host,uri,type,records) {
 	}};
 	
 	if (records.__prev) oData.d.__prev = records.__prev;
-	if (records.__next) oData.d.__prev = records.__next;
+	if (records.__next) oData.d.__next = records.__next;
 	
 	return oData;
 };
