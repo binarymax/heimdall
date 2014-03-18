@@ -226,15 +226,13 @@ var middleware = Heimdall.middleware = function(name,type) {
 // Renders heimdall middleware oData to a view 
 var render = Heimdall.render = function(view) {
 	return function(req,res){
-		var data = {};
-		if (req.heimdall) {
-			data = req.heimdall.d;
-		} else {
-			//Add query data to the view object
-			for(var key in req.query) {
-				if(req.query.hasOwnProperty(key)) {
-					data[key] = req.query[key];
-				}
+		var data = req.heimdall ? req.heimdall.d : {};
+
+		//Add query data to the view object
+		data.query = {};
+		for(var key in req.query) {
+			if(req.query.hasOwnProperty(key)) {
+				data.query[key] = req.query[key];
 			}
 		}
 
