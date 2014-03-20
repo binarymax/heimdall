@@ -10,6 +10,7 @@
 var fs   = require('fs');
 
 //All valid resources loaded by Heimdall
+var specifications = [];
 var resources = [];
 var routes    = [];
 
@@ -141,9 +142,98 @@ var route = function(name,type,method) {
 	
 };
 
+
+// --------------------------------------------------------------------------
+// Registers a heimdall-compliant API specification  
+var documentresource = function(resource){
+	return {
+		__metadata:{
+			uri:'/api/'+resource.name,
+			type:'api.resource'
+		},
+		name:resource.name,
+		description:resource.description,
+		methods:[]
+	}
+}
+
+// --------------------------------------------------------------------------
+// Registers a heimdall-compliant API method specification  
+var documentmethod = function(specification,verb,method) {
+
+	var doc = {verb:verb,description:method.description};
+	var url = '/'+specification.name;
+
+	if (method.params) {
+		for (var p in method.params) {
+			if(method.params.hasOwnProperty(p)) {
+				url += '/:' + p;
+			}
+		}
+	}
+
+	doc.url = url;
+
+	var inputspec = function(items) {
+		var obj = method[items];
+		if (obj) {
+			var list = [];
+			for (var o in obj) {
+				if(obj.hasOwnProperty(o)) {
+					list.push({
+						key:o,
+						type:obj[o].type.type,
+						description:obj[o].description,
+						required:obj[o].required
+					});
+				}
+			}
+			if(list.length) doc[items] = list;
+		}
+	};
+
+	inputspec('params');
+	inputspec('query');
+	inputspec('body');
+	inputspec('files');
+
+	specification.methods.push(doc);
+}
+
+
+// --------------------------------------------------------------------------
+// Creates API Documentation resources for all Heimdall-Compliant routes 
+var documentation = function(app) {
+	
+	app.get("/api",function(req,res) {
+		res.json(format(req.headers.host,req.url,'API.Resource',specifications));
+	});
+
+	app.get("/api/:name",function(req,res) {
+
+		var spec = null;
+
+		for(var i=0,l=specifications.length;i<l;i++) {
+			if (specifications[i].name === req.params.name) {
+				spec = specifications[i];
+				break;
+			}
+		}
+		
+		if(spec) {
+			res.json(format(req.headers.host,req.url,'API.Resource',[spec]));
+		} else {
+			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));
+		}
+
+	});
+
+}; 
+
 // --------------------------------------------------------------------------
 // Creates an oData ENTRY immutable resource, based on an API specification
-var Entry = function(name,resource,app) {
+var Entry = function(name,resource,specification,app) {
+	documentmethod(specification,'GET',resource.api.ENTRY);
 	if (resource.api.ENTRY.open) {
 		app.get('/'+name+'/:name/?', route(name,'entry',resource.api.ENTRY));
 	} else 	if (resource.api.ENTRY.admin) {
@@ -155,7 +245,8 @@ var Entry = function(name,resource,app) {
 
 // --------------------------------------------------------------------------
 // Creates an oData COLLECTION immutable resource, based on an API specification
-var Collection = function(name,resource,app) {
+var Collection = function(name,resource,specification,app) {
+	documentmethod(specification,'GET',resource.api.COLLECTION);
 	if (resource.api.COLLECTION.open) {
 		app.get('/'+name+'/?', route(name,'collection',resource.api.COLLECTION));
 	} else if (resource.api.COLLECTION.admin) {
@@ -167,7 +258,8 @@ var Collection = function(name,resource,app) {
 
 // --------------------------------------------------------------------------
 // Creates an oData ADD mutable resource, based on an API specification
-var Add = function(name,resource,app) {
+var Add = function(name,resource,specification,app) {
+	documentmethod(specification,'POST',resource.api.ADD);
 	if (resource.api.ADD.open) {
 		app.post('/'+name+'/?', route(name,'add',resource.api.ADD));
 	} else if (resource.api.ADD.admin) {
@@ -179,7 +271,8 @@ var Add = function(name,resource,app) {
 
 // --------------------------------------------------------------------------
 // Creates an oData SAVE mutable resource, based on an API specification
-var Save = function(name,resource,app) {
+var Save = function(name,resource,specification,app) {
+	documentmethod(specification,'PUT',resource.api.SAVE);
 	if (resource.api.SAVE.open) {
 		app.put('/'+name+'/?', route(name,'save',resource.api.SAVE));
 	} else if (resource.api.SAVE.admin) {
@@ -191,14 +284,15 @@ var Save = function(name,resource,app) {
 
 // --------------------------------------------------------------------------
 // Creates an oData REMOVE mutable resource, based on an API specification
-var Remove = function(name,resource,app) {
+var Remove = function(name,resource,specification,app) {
+	documentmethod(specification,'DELETE',resource.api.REMOVE);
 	if (resource.api.REMOVE.open) {
 		app['delete']('/'+name+'/:name/?', route(name,'remove',resource.api.REMOVE));
 	} else if (resource.api.REMOVE.admin) {
 		app['delete']('/'+name+'/:name/?', security.administrator, route(name,'remove',resource.api.REMOVE));
 	} else {
 		app['delete']('/'+name+'/:name/?', security.authenticate, route(name,'remove',resource.api.REMOVE));
-	}
+	}	
 };
 
 // --------------------------------------------------------------------------
@@ -254,17 +348,19 @@ var register = Heimdall.register = function(filename,resource,app) {
 	if (typeof resource.name !== "string") { throw (new Error("Resource " + filename + " requires a name")); return false;}
 	if (typeof resource.description !== "string") { throw (new Error("Resource " + name + " at " + filename + " requires a description")); return false;}
 	if (typeof resource.api !== "object") { throw (new Error("Resource " + name + " at "  + filename + " requires an API definition")); return false;}
+	var specification = documentresource(resource);
 	for(var method in resource.api) {
 		if(resource.api.hasOwnProperty(method)) {
 			switch(method) {
-				case 'ENTRY': Entry(resource.name,resource,app); break;
-				case 'COLLECTION': Collection(resource.name,resource,app); break;
-				case 'ADD': Add(resource.name,resource,app); break;
-				case 'SAVE': Save(resource.name,resource,app); break;
-				case 'REMOVE': Remove(resource.name,resource,app); break;
+				case 'ENTRY': Entry(resource.name,resource,specification,app); break;
+				case 'COLLECTION': Collection(resource.name,resource,specification,app); break;
+				case 'ADD': Add(resource.name,resource,specification,app); break;
+				case 'SAVE': Save(resource.name,resource,specification,app); break;
+				case 'REMOVE': Remove(resource.name,resource,specification,app); break;
 			}
 		}
-	} 
+	}
+	specifications.push(specification); 
 };
 
 // --------------------------------------------------------------------------
@@ -292,6 +388,8 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 	}
 	
 	env = app.get('env');
+
+	documentation(app);
 
 	//Chain after load:
 	return Heimdall;
