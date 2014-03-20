@@ -4,7 +4,7 @@ Heimdall is a type-safe, documentation oriented, and security minded HATEOS API 
 
 The goal of Heimdall is to provide an easy way to create reflective and secure REST resources, to enforce documentation standards, to separate req/res from the MVC pattern, and to ensure all incoming and outgoing data is registered, validated, and documented.   
 
-Heimdall uses the oData* standard for API response formatting, and EDM** for type-safety
+Heimdall uses a modified oDatav2[1] format for API responses, and EDM[2] for type-safety
 
 Heimdall is available for use under the MIT License
 
@@ -17,9 +17,9 @@ Here is a simple example of a resource declaration:
 	
 	 module.exports = {
 	
-		name: "To Do List",
+		name: "todo",
 	
-		description:"A resource to Get/List/Create/Update/Remove from a To Do List API",
+		description:"A Todo list CRUD API",
 	
 		api: {
 	
@@ -112,7 +112,7 @@ For a Heimdall API specification to be loaded, the module.exports must have the 
 ### Methods
 
 In the above example the methods are mapped as follows:
- - ENTITY is a GET for /:resource/:id
+ - ENTRY is a GET for /:resource/:id
  - COLLECTION is a GET for /:resource/
  - ADD is a POST for /:resource/
  - SAVE is a PUT for /:resource/:id
@@ -187,8 +187,8 @@ When starting the app, Heimdall is passed a path that contains the API specifica
 	var app = express();
 	heimdall.load(api, app);
 
-
-- * The oData specification can be found at http://odata.org/
-- ** EDM details can be found at http://www.odata.org/documentation/odata-v2-documentation/overview/#6_Primitive_Data_Types
+References
+ - [1] The oData specification can be found at http://odata.org/
+ - [2] EDM details can be found at http://www.odata.org/documentation/odata-v2-documentation/overview/#6_Primitive_Data_Types
 
 ###### *Made with love by Max Irwin (http://binarymax.com)*
