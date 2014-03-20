@@ -42,13 +42,13 @@ var format = function(host,uri,type,records) {
 };
 
 //Formats an oData JSON error response
-var error = function(err,code,message) {
+var error = function(err,code,message,innererror) {
 	code = (code||500).toString();
 	message = message||"Internal Server Error";
 	var oData = {error:{
 			code : code,
 			message : message,
-			innererror : err
+			innererror : innererror||err
 	}};
 	
 	if ('development' == env) {
@@ -123,19 +123,24 @@ var route = function(name,type,method) {
 		//Add the session to the data
 		for(var s in req.session) { if(req.session.hasOwnProperty(s) && s!=='cookie') data[s] = req.session[s]; }
 
-		//Data object ready, call the resource command:
-		resource(name, type, data, function(err,result) {
-			if (err) {
-				res.json(error(req.headers.host,req.url,name+'.'+type,err));
-			} else if (data.redirect) {
-				res.redirect(data.redirect);
-			} else if (req.route.path.indexOf('.html')===-1) {
-				res.json(format(req.headers.host,req.url,name+'.'+type,result));
-			} else {
-				req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
-				next();
-			}
-		});
+		try {
+			//Data object ready, call the resource command:
+			resource(name, type, data, function(err,result) {
+				if (err) {
+					res.json(error(req.headers.host,req.url,name+'.'+type,err));
+				} else if (data.redirect) {
+					res.redirect(data.redirect);
+				} else if (req.route.path.indexOf('.html')===-1) {
+					res.json(format(req.headers.host,req.url,name+'.'+type,result));
+				} else {
+					req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
+					next();
+				}
+			});
+		} catch (ex) {
+			//Exception in resource command
+			res.json(error(req.headers.host,req.url,"Internal Command Error",ex.toString()));			
+		}
 	};
 	
 	return routes[name+'_'+type];
