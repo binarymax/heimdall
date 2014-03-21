@@ -235,16 +235,27 @@ var documentation = function(app) {
 
 }; 
 
+var buildroutestring = function(name,method) {
+	var routestring = "/"+name+"/";
+	for(var p in method.params) {
+		if (method.params.hasOwnProperty(p)) {
+			routestring += ":" + p + "/";
+		}
+	}
+	return routestring + "?";
+}
+
 // --------------------------------------------------------------------------
 // Creates an oData ENTRY immutable resource, based on an API specification
 var Entry = function(name,resource,specification,app) {
 	documentmethod(specification,'GET',resource.api.ENTRY);
+	var routestring = buildroutestring(name,resource.api.ENTRY);
 	if (resource.api.ENTRY.open) {
-		app.get('/'+name+'/:name/?', route(name,'entry',resource.api.ENTRY));
+		app.get(routestring, route(name,'entry',resource.api.ENTRY));
 	} else 	if (resource.api.ENTRY.admin) {
-		app.get('/'+name+'/:name/?', security.administrator, route(name,'entry',resource.api.ENTRY));
+		app.get(routestring, security.administrator, route(name,'entry',resource.api.ENTRY));
 	} else {  
-		app.get('/'+name+'/:name/?', security.authenticate, route(name,'entry',resource.api.ENTRY));
+		app.get(routestring, security.authenticate, route(name,'entry',resource.api.ENTRY));
 	}
 };
 
@@ -252,12 +263,13 @@ var Entry = function(name,resource,specification,app) {
 // Creates an oData COLLECTION immutable resource, based on an API specification
 var Collection = function(name,resource,specification,app) {
 	documentmethod(specification,'GET',resource.api.COLLECTION);
+	var routestring = buildroutestring(name,resource.api.COLLECTION);
 	if (resource.api.COLLECTION.open) {
-		app.get('/'+name+'/?', route(name,'collection',resource.api.COLLECTION));
+		app.get(routestring, route(name,'collection',resource.api.COLLECTION));
 	} else if (resource.api.COLLECTION.admin) {
-		app.get('/'+name+'/?', security.administrator, route(name,'collection',resource.api.COLLECTION));
+		app.get(routestring, security.administrator, route(name,'collection',resource.api.COLLECTION));
 	} else {
-		app.get('/'+name+'/?', security.authenticate, route(name,'collection',resource.api.COLLECTION));
+		app.get(routestring, security.authenticate, route(name,'collection',resource.api.COLLECTION));
 	}
 };
 
@@ -265,12 +277,13 @@ var Collection = function(name,resource,specification,app) {
 // Creates an oData ADD mutable resource, based on an API specification
 var Add = function(name,resource,specification,app) {
 	documentmethod(specification,'POST',resource.api.ADD);
+	var routestring = buildroutestring(name,resource.api.ADD);
 	if (resource.api.ADD.open) {
-		app.post('/'+name+'/?', route(name,'add',resource.api.ADD));
+		app.post(routestring, route(name,'add',resource.api.ADD));
 	} else if (resource.api.ADD.admin) {
-		app.post('/'+name+'/?', security.administrator, route(name,'add',resource.api.ADD));
+		app.post(rouetestring, security.administrator, route(name,'add',resource.api.ADD));
 	} else {
-		app.post('/'+name+'/?', security.authenticate, route(name,'add',resource.api.ADD));
+		app.post(routestring, security.authenticate, route(name,'add',resource.api.ADD));
 	}
 };
 
@@ -278,12 +291,13 @@ var Add = function(name,resource,specification,app) {
 // Creates an oData SAVE mutable resource, based on an API specification
 var Save = function(name,resource,specification,app) {
 	documentmethod(specification,'PUT',resource.api.SAVE);
+	var routestring = buildroutestring(name,resource.api.SAVE);
 	if (resource.api.SAVE.open) {
-		app.put('/'+name+'/?', route(name,'save',resource.api.SAVE));
+		app.put(routestring, route(name,'save',resource.api.SAVE));
 	} else if (resource.api.SAVE.admin) {
-		app.put('/'+name+'/?', security.administrator, route(name,'save',resource.api.SAVE));
+		app.put(routestring, security.administrator, route(name,'save',resource.api.SAVE));
 	} else {
-		app.put('/'+name+'/?', security.authenticate, route(name,'save',resource.api.SAVE));
+		app.put(routestring, security.authenticate, route(name,'save',resource.api.SAVE));
 	}
 };
 
@@ -291,12 +305,13 @@ var Save = function(name,resource,specification,app) {
 // Creates an oData REMOVE mutable resource, based on an API specification
 var Remove = function(name,resource,specification,app) {
 	documentmethod(specification,'DELETE',resource.api.REMOVE);
+	var routestring = buildroutestring(name,resource.api.REMOVE);
 	if (resource.api.REMOVE.open) {
-		app['delete']('/'+name+'/:name/?', route(name,'remove',resource.api.REMOVE));
+		app['delete'](routestring, route(name,'remove',resource.api.REMOVE));
 	} else if (resource.api.REMOVE.admin) {
-		app['delete']('/'+name+'/:name/?', security.administrator, route(name,'remove',resource.api.REMOVE));
+		app['delete'](routestring, security.administrator, route(name,'remove',resource.api.REMOVE));
 	} else {
-		app['delete']('/'+name+'/:name/?', security.authenticate, route(name,'remove',resource.api.REMOVE));
+		app['delete'](routestring, security.authenticate, route(name,'remove',resource.api.REMOVE));
 	}	
 };
 
