@@ -281,7 +281,7 @@ var Add = function(name,resource,specification,app) {
 	if (resource.api.ADD.open) {
 		app.post(routestring, route(name,'add',resource.api.ADD));
 	} else if (resource.api.ADD.admin) {
-		app.post(rouetestring, security.administrator, route(name,'add',resource.api.ADD));
+		app.post(routestring, security.administrator, route(name,'add',resource.api.ADD));
 	} else {
 		app.post(routestring, security.authenticate, route(name,'add',resource.api.ADD));
 	}
