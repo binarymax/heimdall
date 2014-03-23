@@ -147,6 +147,7 @@ Our hex resource also validates for us.  Visiting http://example.com/hex/foobar 
 For the above hex example - not only did we create two working resources (hex and helloworld), but we also constructed everything we need to supply complete documentation to anyone who wants to consume our API.
 
 Visting our documentation at http://example.com/api returns the following JSON:
+
 ```js
 {
   "d": {
@@ -192,7 +193,8 @@ Visting our documentation at http://example.com/api returns the following JSON:
       }
     ]
   }
-}```
+}
+```
 
 The specification above can be used by either a person or machine to consume the API
 
