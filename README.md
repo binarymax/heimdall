@@ -34,54 +34,6 @@ For a Heimdall API specification to be loaded, the module.exports must have the 
  - description - The documentation description of the resource   
  - api - an object that contains the method details
 
-### Methods
-
-In the above example the methods are mapped as follows:
- - ENTRY is a GET for /:resource/:id
- - COLLECTION is a GET for /:resource/
- - ADD is a POST for /:resource/
- - SAVE is a PUT for /:resource/:id
- - REMOVE is a DELETE for /:resource/:id
-
-Each method specification must have the following required properties
- - description - The documentation description of the resource method
- - command - A function that accepts one request data argument and one callback for the response data
- - fields - An object that lists the fields that will be returned by the response
- 
-Each method can also contain definitions for querystring, body and files request data:
- - query - The querystring parameters that will be used by the resource (req.query)
- - body - The form body data that will be used by the resource (req.body)
- - files - The multipart form data file attachments that will be used by the resource (req.files)
-
-The ENTITY, SAVE, and REMOVE methods also require the "params" property, for definition of the resource id:
-
-  params: {
-	id: ... 
-  }
-
-## Method Command
-
-The command property is typically a controller method, that will retrieve or alter data, and return a response.
-
-When a request to a resource method is made, Heimdall checks the incoming query, body, and files data, and aggregates them into a single object.
-
-If a value is sent to the request but is not declared in the resource's Heimdall API specification method, it is ignored.
-
-For the above COLLECTION method example, consider the following request:
-
-	/todo/?isdone=1&random=abc123
-
-The "isdone" is a declared querystring parameter for the method.  That parameter value will be passed into the COLLECTION.command function as a property.  However, the "random" parameter is not declared, and will not be passed into the COLLECTION.command function.
-
-Here is an example of the COLLECTION.command function:
-
-	function(data,callback) {
-		console.log(data.isdone); //true
-		console.log(data.random); //undefined
-		model.GetTodos(data.listid,callback);
-	}
-
-
 ## Hello World Example
 
 Consider a simple resource that accepts request, and returns 'Hello World'.  First we include the Heimdall EDM data types, then layout the resource.
@@ -341,6 +293,54 @@ var controller = require('../controllers/todo')
 
 }
 ```
+
+### Methods
+
+In the above example the methods are mapped as follows:
+ - ENTRY is a GET for /:resource/:id
+ - COLLECTION is a GET for /:resource/
+ - ADD is a POST for /:resource/
+ - SAVE is a PUT for /:resource/:id
+ - REMOVE is a DELETE for /:resource/:id
+
+Each method specification must have the following required properties
+ - description - The documentation description of the resource method
+ - command - A function that accepts one request data argument and one callback for the response data
+ - fields - An object that lists the fields that will be returned by the response
+ 
+Each method can also contain definitions for querystring, body and files request data:
+ - query - The querystring parameters that will be used by the resource (req.query)
+ - body - The form body data that will be used by the resource (req.body)
+ - files - The multipart form data file attachments that will be used by the resource (req.files)
+
+The ENTITY, SAVE, and REMOVE methods also require the "params" property, for definition of the resource id:
+
+  params: {
+	id: ... 
+  }
+
+## Method Command
+
+The command property is typically a controller method, that will retrieve or alter data, and return a response.
+
+When a request to a resource method is made, Heimdall checks the incoming query, body, and files data, and aggregates them into a single object.
+
+If a value is sent to the request but is not declared in the resource's Heimdall API specification method, it is ignored.
+
+For the above COLLECTION method example, consider the following request:
+
+	/todo/?isdone=1&random=abc123
+
+The "isdone" is a declared querystring parameter for the method.  That parameter value will be passed into the COLLECTION.command function as a property.  However, the "random" parameter is not declared, and will not be passed into the COLLECTION.command function.
+
+Here is an example of the COLLECTION.command function:
+
+	function(data,callback) {
+		console.log(data.isdone); //true
+		console.log(data.random); //undefined
+		model.GetTodos(data.listid,callback);
+	}
+
 
 ## Security
  
