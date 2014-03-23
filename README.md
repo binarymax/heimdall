@@ -36,7 +36,7 @@ For a Heimdall API specification to be loaded, the module.exports must have the 
 
 ## Hello World Example
 
-Consider a simple resource that accepts request, and returns 'Hello World'.  First we include the Heimdall EDM data types, then layout the resource.
+Consider a simple resource that accepts request, and returns 'Hello World'.
   
 ```js
 module.exports = {
