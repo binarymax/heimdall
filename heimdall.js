@@ -164,20 +164,14 @@ var documentresource = function(resource){
 
 // --------------------------------------------------------------------------
 // Registers a heimdall-compliant API method specification  
-var documentmethod = function(specification,verb,method) {
+var documentmethod = function(specification,verb,methodtype,method) {
 
-	var doc = {verb:verb,description:method.description};
-	var url = '/'+specification.name;
+	var url  = buildroutestring(specification.name,method);
+	var type = specification.name + '.' + methodtype.toLowerCase();
 
-	if (method.params) {
-		for (var p in method.params) {
-			if(method.params.hasOwnProperty(p)) {
-				url += '/:' + p;
-			}
-		}
-	}
+	var doc = {verb:verb,description:method.description,url:url,type:type};
 
-	doc.url = url;
+	verb = verb.toUpperCase();
 
 	var inputspec = function(items) {
 		var obj = method[items];
@@ -201,6 +195,7 @@ var documentmethod = function(specification,verb,method) {
 	inputspec('query');
 	inputspec('body');
 	inputspec('files');
+	inputspec('fields');
 
 	specification.methods.push(doc);
 }
@@ -235,6 +230,8 @@ var documentation = function(app) {
 
 }; 
 
+// --------------------------------------------------------------------------
+// Builds a url route string, based on accepted method params 
 var buildroutestring = function(name,method) {
 	var routestring = "/"+name+"/";
 	for(var p in method.params) {
@@ -246,74 +243,23 @@ var buildroutestring = function(name,method) {
 }
 
 // --------------------------------------------------------------------------
-// Creates an oData ENTRY immutable resource, based on an API specification
-var Entry = function(name,resource,specification,app) {
-	documentmethod(specification,'GET',resource.api.ENTRY);
-	var routestring = buildroutestring(name,resource.api.ENTRY);
-	if (resource.api.ENTRY.open) {
-		app.get(routestring, route(name,'entry',resource.api.ENTRY));
-	} else 	if (resource.api.ENTRY.admin) {
-		app.get(routestring, security.administrator, route(name,'entry',resource.api.ENTRY));
+// Builds an REST resource based on an API specification 
+var buildmethodresource = function(name,resource,specification,verb,methodname,app) {
+	var method = resource.api[methodname];
+	var routestring = buildroutestring(name,method);
+	var methodnamelc = methodname.toLowerCase();
+	var verblc = verb.toLowerCase();
+
+	documentmethod(specification,verb,methodname,method);
+
+	if (method.open) {
+		app[verblc](routestring, route(name,methodnamelc,method));
+	} else 	if (method.admin) {
+		app[verblc](routestring, security.administrator, route(name,methodnamelc,method));
 	} else {  
-		app.get(routestring, security.authenticate, route(name,'entry',resource.api.ENTRY));
+		app[verblc](routestring, security.authenticate, route(name,methodnamelc,method));
 	}
-};
-
-// --------------------------------------------------------------------------
-// Creates an oData COLLECTION immutable resource, based on an API specification
-var Collection = function(name,resource,specification,app) {
-	documentmethod(specification,'GET',resource.api.COLLECTION);
-	var routestring = buildroutestring(name,resource.api.COLLECTION);
-	if (resource.api.COLLECTION.open) {
-		app.get(routestring, route(name,'collection',resource.api.COLLECTION));
-	} else if (resource.api.COLLECTION.admin) {
-		app.get(routestring, security.administrator, route(name,'collection',resource.api.COLLECTION));
-	} else {
-		app.get(routestring, security.authenticate, route(name,'collection',resource.api.COLLECTION));
-	}
-};
-
-// --------------------------------------------------------------------------
-// Creates an oData ADD mutable resource, based on an API specification
-var Add = function(name,resource,specification,app) {
-	documentmethod(specification,'POST',resource.api.ADD);
-	var routestring = buildroutestring(name,resource.api.ADD);
-	if (resource.api.ADD.open) {
-		app.post(routestring, route(name,'add',resource.api.ADD));
-	} else if (resource.api.ADD.admin) {
-		app.post(routestring, security.administrator, route(name,'add',resource.api.ADD));
-	} else {
-		app.post(routestring, security.authenticate, route(name,'add',resource.api.ADD));
-	}
-};
-
-// --------------------------------------------------------------------------
-// Creates an oData SAVE mutable resource, based on an API specification
-var Save = function(name,resource,specification,app) {
-	documentmethod(specification,'PUT',resource.api.SAVE);
-	var routestring = buildroutestring(name,resource.api.SAVE);
-	if (resource.api.SAVE.open) {
-		app.put(routestring, route(name,'save',resource.api.SAVE));
-	} else if (resource.api.SAVE.admin) {
-		app.put(routestring, security.administrator, route(name,'save',resource.api.SAVE));
-	} else {
-		app.put(routestring, security.authenticate, route(name,'save',resource.api.SAVE));
-	}
-};
-
-// --------------------------------------------------------------------------
-// Creates an oData REMOVE mutable resource, based on an API specification
-var Remove = function(name,resource,specification,app) {
-	documentmethod(specification,'DELETE',resource.api.REMOVE);
-	var routestring = buildroutestring(name,resource.api.REMOVE);
-	if (resource.api.REMOVE.open) {
-		app['delete'](routestring, route(name,'remove',resource.api.REMOVE));
-	} else if (resource.api.REMOVE.admin) {
-		app['delete'](routestring, security.administrator, route(name,'remove',resource.api.REMOVE));
-	} else {
-		app['delete'](routestring, security.authenticate, route(name,'remove',resource.api.REMOVE));
-	}	
-};
+}
 
 // --------------------------------------------------------------------------
 // Expose heimdall resource calls for use by other modules 
@@ -372,11 +318,11 @@ var register = Heimdall.register = function(filename,resource,app) {
 	for(var method in resource.api) {
 		if(resource.api.hasOwnProperty(method)) {
 			switch(method) {
-				case 'ENTRY': Entry(resource.name,resource,specification,app); break;
-				case 'COLLECTION': Collection(resource.name,resource,specification,app); break;
-				case 'ADD': Add(resource.name,resource,specification,app); break;
-				case 'SAVE': Save(resource.name,resource,specification,app); break;
-				case 'REMOVE': Remove(resource.name,resource,specification,app); break;
+				case 'ENTRY': buildmethodresource(resource.name,resource,specification,'GET',method,app); break;
+				case 'COLLECTION': buildmethodresource(resource.name,resource,specification,'GET',method,app); break;
+				case 'ADD': buildmethodresource(resource.name,resource,specification,'POST',method,app); break;
+				case 'SAVE': buildmethodresource(resource.name,resource,specification,'PUT',method,app); break;
+				case 'REMOVE': buildmethodresource(resource.name,resource,specification,'DELETE',method,app); break;
 			}
 		}
 	}
@@ -437,23 +383,23 @@ new EdmType("time",		function(val) { return true; }); //TODO - validate and cast
 new EdmType("datetimeoffset",function(val) { return true; }); //TODO - validate and cast
 
 /*
-http://www.odata.org/documentation/odata-v2-documentation/overview/#6_Primitive_Data_Types
+http://www.odata.org/documentation/odata-version-2-0/overview/#AbstractTypeSystem
 
 Primitive Types,Literal Form,Example
 Null		Represents the absence of a value	null	Example 1: null
-Edm.Binary	Represent fixed- or variable- length binary data	binary’[A-Fa-f0-9][A-Fa-f0-9]*’ OR X ‘[A-Fa-f0-9][A-Fa-f0-9]*’ NOTE: X and binary are case sensitive. Spaces are not allowed between binary and the quoted portion. Spaces are not allowed between X and the quoted portion. Odd pairs of hex digits are not allowed.	Example 1: X’23AB’ Example 2: binary’23ABFF’
+Edm.Binary	Represent fixed- or variable- length binary data	binary'[A-Fa-f0-9][A-Fa-f0-9]*' OR X '[A-Fa-f0-9][A-Fa-f0-9]*' NOTE: X and binary are case sensitive. Spaces are not allowed between binary and the quoted portion. Spaces are not allowed between X and the quoted portion. Odd pairs of hex digits are not allowed.	Example 1: X'23AB' Example 2: binary'23ABFF'
 Edm.Boolean	Represents the mathematical concept of binary-valued logic	true | false	Example 1: true Example 2: false
 Edm.Byte	Unsigned 8-bit integer value	[A-Fa-f0-9]+	Example 1: FF
-Edm.DateTime	Represents date and time with values ranging from 12:00:00 midnight, January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D.	datetime’yyyy-mm-ddThh:mm[:ss[.fffffff]]’ NOTE: Spaces are not allowed between datetime and quoted portion. datetime is case-insensitive	Example 1: datetime’2000-12-12T12:00′
+Edm.DateTime	Represents date and time with values ranging from 12:00:00 midnight, January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D.	datetime'yyyy-mm-ddThh:mm[:ss[.fffffff]]' NOTE: Spaces are not allowed between datetime and quoted portion. datetime is case-insensitive	Example 1: datetime'2000-12-12T12:00′
 Edm.Decimal	Represents numeric values with fixed precision and scale. This type can describe a numeric value ranging from negative 10^255 + 1 to positive 10^255 -1	[0-9]+.[0-9]+M|m	Example 1:2.345M
-Edm.Double	Represents a floating point number with 15 digits precision that can represent values with approximate range of Â± 2.23e -308 through Â± 1.79e +308	[0-9]+ ((.[0-9]+) | [E[+ | -][0-9]+])	Example 1: 1E+10 Example 2: 2.029 Example 3: 2.0
-Edm.Single	Represents a floating point number with 7 digits precision that can represent values with approximate range of Â± 1.18e -38 through Â± 3.40e +38	[0-9]+.[0-9]+f	Example 1: 2.0f
-Edm.Guid	Represents a 16-byte (128-bit) unique identifier value	guid’dddddddd-dddd-dddd-dddd-dddddddddddd’ where each d represents [A-Fa-f0-9]	Example 1: guid’12345678-aaaa-bbbb-cccc-ddddeeeeffff’
+Edm.Double	Represents a floating point number with 15 digits precision that can represent values with approximate range of ± 2.23e -308 through ± 1.79e +308	[0-9]+ ((.[0-9]+) | [E[+ | -][0-9]+])	Example 1: 1E+10 Example 2: 2.029 Example 3: 2.0
+Edm.Single	Represents a floating point number with 7 digits precision that can represent values with approximate range of ± 1.18e -38 through ± 3.40e +38	[0-9]+.[0-9]+f	Example 1: 2.0f
+Edm.Guid	Represents a 16-byte (128-bit) unique identifier value	guid'dddddddd-dddd-dddd-dddd-dddddddddddd' where each d represents [A-Fa-f0-9]	Example 1: guid'12345678-aaaa-bbbb-cccc-ddddeeeeffff'
 Edm.Int16	Represents a signed 16-bit integer value	[-] [0-9]+	Example 1: 16 Example 2: -16
 Edm.Int32	Represents a signed 32-bit integer value	[-] [0-9]+	Example 1: 32 Example 2: -32
 Edm.Int64	Represents a signed 64-bit integer value	[-] [0-9]+L	Example 1: 64L Example 2: -64L
 Edm.SByte	Represents a signed 8-bit integer value	[-] [0-9]+	Example 1: 8 Example 2: -8
-Edm.String	Represents fixed- or variable-length character data	‘<any UTF-8 character>’ Note: See definition of UTF8-char in [RFC3629]	Example 1: ‘Hello OData’
-Edm.Time	Represents the time of day with values ranging from 0:00:00.x to 23:59:59.y, where x and y depend upon the precision	time’<timeLiteral>’ timeLiteral = Defined by the lexical representation for time at http://www.w3.org/TR/xmlschema-2	Example 1: 13:20:00
-Edm.DateTimeOffset	Represents date and time as an Offset in minutes from GMT, with values ranging from 12:00:00 midnight, January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D	datetimeoffset’<dateTimeOffsetLiteral>’ dateTimeOffsetLiteral = Defined by the lexical representation for datetime (including timezone offset) at http://www.w3.org/TR/xmlschema-2	Example 1: 2002-10-10T17:00:00Z
+Edm.String	Represents fixed- or variable-length character data	'<any UTF-8 character>' Note: See definition of UTF8-char in [RFC3629]	Example 1: 'Hello OData'
+Edm.Time	Represents the time of day with values ranging from 0:00:00.x to 23:59:59.y, where x and y depend upon the precision	time'<timeLiteral>' timeLiteral = Defined by the lexical representation for time at http://www.w3.org/TR/xmlschema-2	Example 1: 13:20:00
+Edm.DateTimeOffset	Represents date and time as an Offset in minutes from GMT, with values ranging from 12:00:00 midnight, January 1, 1753 A.D. through 11:59:59 P.M, December 9999 A.D	datetimeoffset'<dateTimeOffsetLiteral>' dateTimeOffsetLiteral = Defined by the lexical representation for datetime (including timezone offset) at http://www.w3.org/TR/xmlschema-2	Example 1: 2002-10-10T17:00:00Z
 */
