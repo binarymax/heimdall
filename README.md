@@ -30,7 +30,7 @@ The api path should have at least one file.  An API specification file declares 
 ## Specification
 
 For a Heimdall API specification to be loaded, the module.exports must have the following required properties: 
- - name - The resource name ("todo" will be used as :resource for the above specification)
+ - name - The resource name (name:"todo" will create resource /todo)
  - description - The documentation description of the resource   
  - api - an object that contains the method details
 
