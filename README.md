@@ -329,7 +329,7 @@ When a request to a resource method is made, Heimdall checks the incoming query,
 
 If a value is sent to the request but is not declared in the resource's Heimdall API specification method, it is ignored.
 
-For the above COLLECTION method example, consider the following request:
+For the above Todo List COLLECTION method example, consider the following request:
 
 	/todo/?isdone=1&random=abc123
 
@@ -340,7 +340,7 @@ Here is an example of the COLLECTION.command function:
 	function(data,callback) {
 		console.log(data.isdone); //true
 		console.log(data.random); //undefined
-		model.GetTodos(data.listid,callback);
+		model.GetTodos(data.isdone,callback);
 	}
 
 
@@ -349,7 +349,13 @@ Here is an example of the COLLECTION.command function:
 We can also pass in security functions as middleware into our heimdall load.  This will lock down all resource methods that do not declare open:true in the specification.  For example, if we want to secure all our resources to be accessible only to the local machine, we just do this:
 
 ```js
-var authenticate = function(req,res) { if(req.headers.ip==='127.0.0.1') next(); else res.send(403); };
+var authenticate = function(req,res,next) { 
+	if(req.headers.ip==='127.0.0.1') {
+		next();
+	} else { 
+		res.send(403);
+	} 
+};
 heimdall.load(api,app,authenticate);
 ```
 
@@ -359,22 +365,22 @@ A more complex example with a username/password session authentication will be a
 
 Heimdall uses the oData EDM (entity data model) type system.  The available types are listed below, and can be used in params, query, body, and fields declarations.
 
- - edm.NULL
- - edm.binary
- - edm.boolean
- - edm.byte
- - edm.datetime
- - edm.decimal
- - edm.double
- - edm.single
- - edm.guid
- - edm.int16
- - edm.int32
- - edm.int64
- - edm.sbyte
- - edm.string
- - edm.time
- - edm.datetimeoffset
+ - heimdall.oData.EDM.NULL
+ - heimdall.oData.EDM.binary
+ - heimdall.oData.EDM.boolean
+ - heimdall.oData.EDM.byte
+ - heimdall.oData.EDM.datetime
+ - heimdall.oData.EDM.decimal
+ - heimdall.oData.EDM.double
+ - heimdall.oData.EDM.single
+ - heimdall.oData.EDM.guid
+ - heimdall.oData.EDM.int16
+ - heimdall.oData.EDM.int32
+ - heimdall.oData.EDM.int64
+ - heimdall.oData.EDM.sbyte
+ - heimdall.oData.EDM.string
+ - heimdall.oData.EDM.time
+ - heimdall.oData.EDM.datetimeoffset
  
 
 ## References
