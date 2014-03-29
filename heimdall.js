@@ -313,28 +313,69 @@ var chain = Heimdall.chain = function(name,type) {
 };
 
 // --------------------------------------------------------------------------
-// Renders heimdall middleware oData to a view 
+// Renders heimdall middleware oData to a view
+var templateexists = []; 
 var render = Heimdall.render = function(view) {
 	return function(req,res){
 		var data = req.heimdall ? req.heimdall.d : {};
 
-		//Add query data to the view object
-		data.query = {};
-		for(var key in req.query) {
-			if(req.query.hasOwnProperty(key)) {
-				data.query[key] = req.query[key];
+		var file = view;
+
+		//Get the expanded filename of the view
+		if (file.indexOf(":")>-1) {
+			for(var key in req.params) {
+				if (req.params.hasOwnProperty(key)) {
+					file = file.replace(":"+key,req.params[key]);
+				}
 			}
 		}
-
-		//Add session data to the view object
-		data.session = {};
-		for(var key in req.session) {
-			if(req.session.hasOwnProperty(key) && key!= 'cookie') {
-				data.session[key] = req.session[key];
+		
+		//Renders the view, after verifying the template exists
+		var renderview = function(file) {		
+			//Add query data to the view object
+			data.query = {};
+			for(var key in req.query) {
+				if(req.query.hasOwnProperty(key)) {
+					data.query[key] = req.query[key];
+				}
 			}
+	
+			//Add session data to the view object
+			data.session = {};
+			for(var key in req.session) {
+				if(req.session.hasOwnProperty(key) && key!= 'cookie') {
+					data.session[key] = req.session[key];
+				}
+			}
+	
+			res.render(file,data);
 		}
+		
+		if (templateexists[file] === true) {
+			//template exists, render
+			renderview(file);
 
-		res.render(view,data);
+		} else if (templateexists[file] === false) {
+			//template does not exist, 404
+			res.send(404);
+
+		} else {
+			//check if template exists
+			var filepath = process.cwd()+'/views/'+file+'.jade';
+			fs.exists(filepath, function(exists) {
+
+				if (!exists) { 
+					//Template does not exist!
+					templateexists[file]=false;
+					res.send(404); 
+
+				} else {
+					templateexists[file]=true;
+					renderview(file);
+				}
+										
+			});
+		}
 	}
 }
 
