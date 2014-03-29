@@ -32,7 +32,7 @@ var format = function(host,uri,type,records) {
 				uri:baseuri+uri,
 				type:type
 			}
-			rec.__index = rex.__index||(rec.__index++);
+			rec.__index = rec.__index||(rec.__index++);
 			return rec;
 		})
 	}};
@@ -316,64 +316,79 @@ var chain = Heimdall.chain = function(name,type) {
 
 // --------------------------------------------------------------------------
 // Renders heimdall middleware oData to a view
-var templateexists = []; 
+
+//Get the expanded name of a view with req.params
+var parseview = function(view,params) {
+	if (view.indexOf(":")>-1) {
+		for(var key in params) {
+			if (params.hasOwnProperty(key)) {
+				view = view.replace(":"+key, params[key]);
+			}
+		}
+	}
+	return view;
+}
+
+//Renders the view, after verifying the template exists
+var renderview = function(req,res,view) {		
+
+	//Inherit chained heimdall data
+	var data = req.heimdall ? req.heimdall.d : {};
+
+	//Add query data to the view object
+	data.query = {};
+	for(var key in req.query) {
+		if(req.query.hasOwnProperty(key)) {
+			data.query[key] = req.query[key];
+		}
+	}
+
+	//Add session data to the view object
+	data.session = {};
+	for(var key in req.session) {
+		if(req.session.hasOwnProperty(key) && key!= 'cookie') {
+			data.session[key] = req.session[key];
+		}
+	}
+
+	res.render(view,data);
+}
+
+//Cached template file existence
+var templateexists = [];
+
+//Public Heimdall render method 
 var render = Heimdall.render = function(view) {
+
 	return function(req,res){
-		var data = req.heimdall ? req.heimdall.d : {};
 
-		var file = view;
+		var notfound = function(){ res.send(404); }
 
-		//Get the expanded filename of the view
-		if (file.indexOf(":")>-1) {
-			for(var key in req.params) {
-				if (req.params.hasOwnProperty(key)) {
-					file = file.replace(":"+key,req.params[key]);
-				}
-			}
-		}
+		var viewname = parseview(view,req.params);
 		
-		//Renders the view, after verifying the template exists
-		var renderview = function(file) {		
-			//Add query data to the view object
-			data.query = {};
-			for(var key in req.query) {
-				if(req.query.hasOwnProperty(key)) {
-					data.query[key] = req.query[key];
-				}
-			}
-	
-			//Add session data to the view object
-			data.session = {};
-			for(var key in req.session) {
-				if(req.session.hasOwnProperty(key) && key!= 'cookie') {
-					data.session[key] = req.session[key];
-				}
-			}
-	
-			res.render(file,data);
-		}
-		
-		if (templateexists[file] === true) {
-			//template exists, render
-			renderview(file);
+		if (templateexists[viewname] === true) {
+			//template known to exist, render
+			renderview(req,res,viewname);
 
-		} else if (templateexists[file] === false) {
-			//template does not exist, 404
-			res.send(404);
+		} else if (templateexists[viewname] === false) {
+			//template known to not exist, 404
+			notfound();
 
 		} else {
 			//check if template exists
-			var filepath = process.cwd()+'/views/'+file+'.jade';
-			fs.exists(filepath, function(exists) {
+			var filename = process.cwd()+'/views/'+viewname+'.jade';
+			fs.exists(filename, function(exists) {
 
-				if (!exists) { 
-					//Template does not exist!
-					templateexists[file]=false;
-					res.send(404); 
+				if (exists) { 
+					//Template exists!  Cache result and render
+					templateexists[viewname]=true;
+					renderview(req,res,viewname);
 
 				} else {
-					templateexists[file]=true;
-					renderview(file);
+					//Template does not exist!  Cache result and 404
+					templateexists[viewname]=false;
+					notfound(); 
+
 				}
 										
 			});
