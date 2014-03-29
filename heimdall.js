@@ -23,6 +23,7 @@ var security  = {authenticate:function(req,res,next){next()},administrator:funct
 
 //Formats an oData JSON response
 var format = function(host,uri,type,records) {
+	var __index = 0;
 	var baseuri = "//" + host;
 	var oData = {d:{
 		__count : records.length,
@@ -31,6 +32,7 @@ var format = function(host,uri,type,records) {
 				uri:baseuri+uri,
 				type:type
 			}
+			rec.__index = rex.__index||(rec.__index++);
 			return rec;
 		})
 	}};
