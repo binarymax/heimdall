@@ -128,6 +128,10 @@ var route = function(name,type,method) {
 			resource(name, type, data, function(err,result) {
 				if (err) {
 					res.json(error(req.headers.host,req.url,name+'.'+type,err));
+				} else if (req.heimdallchain) {
+					req.heimdallchain = null;
+					req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
+					next();
 				} else if (data.redirect) {
 					res.redirect(data.redirect);
 				} else if (req.route.path.indexOf('.html')===-1) {
@@ -264,7 +268,13 @@ var buildmethodresource = function(name,resource,specification,verb,methodname,a
 // --------------------------------------------------------------------------
 // Expose heimdall resource calls for use by other modules 
 var resource = Heimdall.resource = function(name,type,data,callback) {
-	resources[name+'_'+type]({name:name,type:type},data,callback);
+	if (resources[name+'_'+type]) {
+		resources[name+'_'+type]({name:name,type:type},data,callback);
+	} else {
+		var heimdall_resource_not_found = "ERROR - The Heimdall resource ["+name+"."+type+"] does not exist";
+		console.error(heimdall_resource_not_found);
+		callback(heimdall_resource_not_found);
+	}
 };
 
 // --------------------------------------------------------------------------
@@ -278,8 +288,28 @@ var set = Heimdall.set = function(query) {
 
 // --------------------------------------------------------------------------
 // Expose heimdall resource calls for use as connect/express middleware 
-var middleware = Heimdall.middleware = function(name,type) {
-	return routes[name+'_'+type];
+var middleware = Heimdall.middleware = function(name,type) {	
+	if (routes[name+'_'+type]) {
+		return routes[name+'_'+type];
+	} else {
+		var heimdall_middleware_not_found = "ERROR - The Heimdall route ["+name+"."+type+"] does not exist";
+		throw new Error(heimdall_middleware_not_found);
+	}	
+};
+
+// --------------------------------------------------------------------------
+// Expose heimdall resource calls for use as connect/express middleware 
+var chain = Heimdall.chain = function(name,type) {
+	if (routes[name+'_'+type]) {
+		return function(req,res,next) {
+			req.heimdallchain = true;
+			routes[name+'_'+type].call(this,req,res,next);
+		}
+	} else {
+		var heimdall_chain_not_found = "ERROR - The Heimdall route ["+name+"."+type+"] does not exist";
+		throw new Error(heimdall_chain_not_found);
+	} 
+
 };
 
 // --------------------------------------------------------------------------
