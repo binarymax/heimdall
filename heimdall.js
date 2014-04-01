@@ -7,8 +7,8 @@
 ****************************************************************************/
 
 //Module dependencies
-var fs   = require('fs');
-
+var fs    = require('fs');
+ 
 //All valid resources loaded by Heimdall
 var specifications = [];
 var resources = [];
@@ -418,6 +418,31 @@ var register = Heimdall.register = function(filename,resource,app) {
 };
 
 // --------------------------------------------------------------------------
+// Heimdall extended DataType creation method
+//  params:
+//    @datatype - the type object to create. Properties:
+//              - "name"     - the name of the datatype  (required)
+//				- "validate" - the validation function   (optional)
+//				- "cast"     - the type casting function (optional)
+var type = Heimdall.type = function(datatype) {
+	
+	var heimdall_type_not_found = "ERROR - A datatype was not provided";
+	if(!datatype) throw new Error(heimdall_type_not_found);
+	
+	var heimdall_type_name_not_valid = "ERROR - The datatype does not have a valid name";
+	if(typeof datatype.name !== 'string') throw new Error(heimdall_type_name_not_valid);
+	
+	var heimdall_type_exists = "ERROR - The datatype '"+datatype.name+"' already exists";
+	if(Heimdall.oData.Edm[datatype.name]) throw new Error(heimdall_type_exists);
+	
+	var validate = (typeof datatype.validate === 'function') ? datatype.validate : function(){return true;};
+	var cast = (typeof datatype.cast === 'function') ? datatype.cast     : function(val){return val;};
+	
+	new EdmType(datatype.name, validate, cast);	
+	
+}
+
+// --------------------------------------------------------------------------
 // Heimdall Main entry point
 //  params:
 //    @path - the absolute path to the API definition files
@@ -450,22 +475,7 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 
 }
 
-
-//Declare all the oData Edm DataTypes
-var guidre = /^(guid\')?([\dabcdef]{8,8}-[\dabcdef]{4,4}-[\dabcdef]{4,4}-[\dabcdef]{4,4}-[\dabcdef]{12,12})(\')?$/i;
-new EdmType("NULL",		function(val) { return val===null || val == 'null'; }, function(val) { return null; });
-new EdmType("binary",	function(val) { return true; });
-new EdmType("boolean",	function(val) { return val===true || val===false || val==='on' || val==='checked' || val == '1' || val =='true' || val == '0' || val == 'false' || val == 1 || val == 0;}, function(val) { return (val===true || val==='on' || val==='checked' || val == '1' || val =='true' || val==1 )?1:0; });
-new EdmType("byte",		function(val) { var val = parseInt(val); return !isNaN(val) && val.toString().indexOf(".")===-1 && val>=0 && val<=256; },function(val){ return parseInt(val);});
-new EdmType("datetime",	function(val) { return (new Date(val))?true:false; },function(val){ return new Date(val) });
-new EdmType("decimal",	function(val) { return !isNaN(parseFloat(val)); }, function(val){ return parseFloat(val);}); //TODO - validate min/max
-new EdmType("double",	function(val) { return !isNaN(parseFloat(val)); }, function(val){ return parseFloat(val);}); //TODO - validate min/max
-new EdmType("single",	function(val) { return !isNaN(parseFloat(val)); }, function(val){ return parseFloat(val);}); //TODO - validate min/max
-new EdmType("guid",		function(val) { return guidre.test(val); });
-new EdmType("int16",	function(val) { var val = parseInt(val); return !isNaN(val) && val.toString().indexOf(".")===-1; },function(val){ return parseInt(val);}); //TODO - validate min/max
-new EdmType("int32",	function(val) { var val = parseInt(val); return !isNaN(val) && val.toString().indexOf(".")===-1; },function(val){ return parseInt(val);}); //TODO - validate min/max
-new EdmType("int64",	function(val) { var val = parseInt(val); return !isNaN(val) && val.toString().indexOf(".")===-1; },function(val){ return parseInt(val);}); //TODO - validate min/max
-new EdmType("sbyte",	function(val) { var val = parseInt(val); return !isNaN(val) && val.toString().indexOf(".")===-1 && val>=-128 && val<=127; },function(val){ return parseInt(val);});
-new EdmType("string",	function(val) { return typeof val === "string"; });
-new EdmType("time",		function(val) { return true; }); //TODO - validate and cast
-new EdmType("datetimeoffset",function(val) { return true; }); //TODO - validate and cast
+//=============================================================================
+//Declare default datatypes
+var types = require('./datatypes').defaults;
+for(var i=0,l=types.length;i<l;i++) type(types[i]);
