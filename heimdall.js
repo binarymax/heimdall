@@ -27,7 +27,7 @@ var format = function(host,uri,type,records) {
 	var oData = {d:{
 		__count : records.length,
 		results : records.map(function(rec){
-			rec.__index         = rec.__index         || (rec.__index++);
+			rec.__index         = __index++;
 			rec.__metadata      = rec.__metadata      || {}
 			rec.__metadata.uri  = rec.__metadata.uri  || (baseuri+uri);  
 			rec.__metadata.type = rec.__metadata.type || type;  
