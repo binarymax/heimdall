@@ -1,5 +1,5 @@
-var heimdall = require('../../../heimdall');
-var datatype = heimdall.oData.Edm;
+var heimdall  = require('../../../heimdall');
+var datatypes = heimdall.datatypes;
 
 module.exports = {
 	name: "hex",
@@ -8,15 +8,16 @@ module.exports = {
 		ENTRY:{
 			description:"Converts a hexadecimal value to rgb",
 			params:{
-				"color":datatype.string("The Hexadecimal color")
+				"color":datatypes.string("The Hexadecimal color")
 			},
 			fields:{
-				"r":datatype.byte("The red value"),
-				"g":datatype.byte("The green value"),
-				"b":datatype.byte("The blue value")
+				"r":datatypes.byte("The red value"),
+				"g":datatypes.byte("The green value"),
+				"b":datatypes.byte("The blue value")
 			},
 			command: function(data,callback) {
-				var ok = /^[A-F|0-9]{6}$/i;
+				console.log(data.color);
+				var ok = /^([a-f0-9]{6})$/i;
 				if(!ok.test(data.color)){
 					//Error!
 					callback("The supplied value is not a hexadecimal color.");
