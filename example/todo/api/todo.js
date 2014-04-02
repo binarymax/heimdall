@@ -1,5 +1,5 @@
 var controller = require('../controllers/todo')
-  , edm = require('../../../heimdall').oData.Edm;
+  , datatypes  = require('../../../heimdall').datatypes;
 
  module.exports = {
 
@@ -12,14 +12,14 @@ var controller = require('../controllers/todo')
 		ENTRY: {
 			description:"Gets a specific To-Do Item",
 			params:{
-				id:edm.int64("The ID of the item entry to retrieve",true)
+				id:datatypes.int64("The ID of the item entry to retrieve",true)
 			},
 			fields:{
-				id:edm.int64("The ID of the item"),
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system"),
-				isdeleted:edm.boolean("True if the item has been removed from the list")
+				id:datatypes.int64("The ID of the item"),
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system"),
+				isdeleted:datatypes.boolean("True if the item has been removed from the list")
 			},
 			command:controller.Entry
 		},
@@ -27,11 +27,11 @@ var controller = require('../controllers/todo')
 		COLLECTION: {
 			description:"Gets a list of Todo Items for a List",
 			fields:{
-				id:edm.int64("The ID of the item"),
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system"),
-				isdeleted:edm.boolean("True if the item has been removed from the list")
+				id:datatypes.int64("The ID of the item"),
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system"),
+				isdeleted:datatypes.boolean("True if the item has been removed from the list")
 			},
 			command:controller.Collection
 		},
@@ -39,16 +39,16 @@ var controller = require('../controllers/todo')
 		ADD: {
 			description:"Adds a new Todo Item to a List",
 			body:{
-				description:edm.string("The textual description of the item",true),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system"),
-				redirect:edm.string("Redirect to this URL after Add")
+				description:datatypes.string("The textual description of the item",true),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system"),
+				redirect:datatypes.string("Redirect to this URL after Add")
 			},
 			fields:{
-				id:edm.int64("The ID of the newly added item"),
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system")
+				id:datatypes.int64("The ID of the newly added item"),
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system")
 			},
 			command:controller.Add
 		},
@@ -56,19 +56,19 @@ var controller = require('../controllers/todo')
 		SAVE: {
 			description:"Saves a specific Todo Item",
 			params:{
-				id:edm.int64("The ID of the item entry to save",true)
+				id:datatypes.int64("The ID of the item entry to save",true)
 			},
 			body:{
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system"),
-				redirect:edm.string("Redirect to this URL after Save")				
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system"),
+				redirect:datatypes.string("Redirect to this URL after Save")				
 			},
 			fields:{
-				id:edm.int64("The ID of the saved Todo item"),
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system")
+				id:datatypes.int64("The ID of the saved Todo item"),
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system")
 			},
 			command:controller.Save
 		},
@@ -76,10 +76,10 @@ var controller = require('../controllers/todo')
 		REMOVE: {
 			description:"Marks a specific Todo Item as deleted",
 			params:{
-				id:edm.int64("The ID of the item entry to remove",true)
+				id:datatypes.int64("The ID of the item entry to remove",true)
 			},
 			fields:{
-		        affectedRows: edm.int32("The number of records effected by the removal")
+		        affectedRows: datatypes.int32("The number of records effected by the removal")
 			},
 			command:controller.Remove
 		}
