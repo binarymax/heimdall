@@ -1,3 +1,5 @@
+var moment = require('moment');
+
 var datatypes = [];
 
 datatypes.push({
@@ -26,8 +28,8 @@ datatypes.push({
 
 datatypes.push({
 	name:"datetime",
-	cast:function(val){ return new Date(val) },
-	validate:function(val) { return (new Date(val))?true:false; }
+	cast:function(val){ return moment(val) },
+	validate:function(val) { return moment(val).isValid(); }
 });
 
 datatypes.push({
