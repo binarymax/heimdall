@@ -160,6 +160,9 @@ var documentresource = function(resource){
 			uri:'/api/'+resource.name,
 			type:'api.resource'
 		},
+		__deferred:{
+			uri:'/api/'+resource.name+'.html'
+		},
 		name:resource.name,
 		description:resource.description,
 		methods:[]
@@ -209,28 +212,59 @@ var documentmethod = function(specification,verb,methodtype,method) {
 // Creates API Documentation resources for all Heimdall-Compliant routes 
 var documentation = function(app) {
 	
+	var viewpath = __dirname+'/views/api';	
+
+	app.get("/api.html",function(req,res,next) {
+		req.heimdall = format(req.headers.host,req.url,'API.Resource',specifications);
+		next();
+	},render(viewpath));
+	
+
 	app.get("/api",function(req,res) {
 		res.json(format(req.headers.host,req.url,'API.Resource',specifications));
 	});
 
-	app.get("/api/:name",function(req,res) {
-
+	var getSpec = function(name) {
 		var spec = null;
 
 		for(var i=0,l=specifications.length;i<l;i++) {
-			if (specifications[i].name === req.params.name) {
+			if (specifications[i].name === name) {
 				spec = specifications[i];
 				break;
 			}
 		}
 		
-		if(spec) {
-			res.json(format(req.headers.host,req.url,'API.Resource',[spec]));
-		} else {
+		return spec;
+	}
+
+	app.get("/api/:name.html",function(req,res,next) {
+
+		var spec = getSpec(req.params.name)
+		
+		if(!spec) {
 			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));
+			return false;
 		}
 
+		req.heimdall = format(req.headers.host,req.url,'API.Resource',[spec]);
+		next();
+
+	},render(viewpath));
+
+
+	app.get("/api/:name",function(req,res) {
+
+		var spec = getSpec(req.params.name)
+
+		if(!spec) {
+			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));
+			return false;
+		}
+		
+		res.json(format(req.headers.host,req.url,'API.Resource',[spec]));
+
 	});
+
 
 }; 
 
@@ -354,7 +388,7 @@ var render = Heimdall.render = function(view) {
 
 		} else {
 			//check if template exists
-			var filename = process.cwd()+'/views/'+viewname+'.jade';
+			var filename = (viewname.indexOf('/heimdall/views/')>-1?viewname:process.cwd()+'/views/'+viewname)+'.jade';
 			fs.exists(filename, function(exists) {
 
 				if (exists) { 
