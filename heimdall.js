@@ -126,6 +126,11 @@ var route = function(name,type,method) {
 		try {
 			//Data object ready, call the resource command:
 			resource(name, type, data, function(err,result) {
+
+				if (!isNaN(req.heimdallcacheduration)) {
+					res.setHeader('Cache-Control', 'public, max-age=' + req.heimdallcacheduration);
+				}
+
 				if (err) {
 					res.json(error(req.headers.host,req.url,name+'.'+type,err));
 				} else if (req.heimdallchain) {
@@ -460,6 +465,17 @@ var chain = Heimdall.chain = function(name,type) {
 	} 
 
 };
+
+// --------------------------------------------------------------------------
+// Middleware to set Cache-Control for the resource to a specific duration
+//	params:
+//		@duration - The cache duration in milliseconds
+var cache = Heimdall.cache = function(duration) {
+	return function(req,res,next) {
+		req.heimdallcacheduration = duration;
+		next();
+	}
+}
 
 //===========================================================================
 // Public Heimdall Initialization methods
