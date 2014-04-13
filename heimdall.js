@@ -317,8 +317,11 @@ var register = function(filename,resource,app) {
 				case 'ENTRY': buildmethodresource(resource.name,resource,specification,'GET',method,app); break;
 				case 'COLLECTION': buildmethodresource(resource.name,resource,specification,'GET',method,app); break;
 				case 'ADD': buildmethodresource(resource.name,resource,specification,'POST',method,app); break;
-				case 'SAVE': buildmethodresource(resource.name,resource,specification,'PUT',method,app); break;
-				case 'REMOVE': buildmethodresource(resource.name,resource,specification,'DELETE',method,app); break;
+				case 'SAVE': 
+					buildmethodresource(resource.name,resource,specification,'PUT',method,app);
+					buildmethodresource(resource.name,resource,specification,'POST',method,app);
+					break;
+				case 'REMOVE':buildmethodresource(resource.name,resource,specification,'DELETE',method,app); break;
 			}
 		}
 	}
