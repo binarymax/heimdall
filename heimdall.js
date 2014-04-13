@@ -366,6 +366,9 @@ var renderview = function(req,res,view) {
 		}
 	}
 
+	data.request = {};
+	data.request.url = req.url;
+
 	res.render(view,data);
 }
 
