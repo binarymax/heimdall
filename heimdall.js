@@ -176,9 +176,9 @@ var documentresource = function(resource){
 
 // --------------------------------------------------------------------------
 // Registers a heimdall-compliant API method specification  
-var documentmethod = function(specification,verb,methodtype,method) {
+var documentmethod = function(root,specification,verb,methodtype,method) {
 
-	var url  = buildroutestring(specification.name,method);
+	var url  = buildroutestring(specification.name,root,method);
 	var type = specification.name + '.' + methodtype.toLowerCase();
 
 	var doc = {verb:verb,description:method.description,url:url,type:type};
@@ -275,8 +275,8 @@ var documentation = function(app) {
 
 // --------------------------------------------------------------------------
 // Builds a url route string, based on accepted method params 
-var buildroutestring = function(name,method) {
-	var routestring = "/"+name+"/";
+var buildroutestring = function(name,root,method) {
+	var routestring = root + name + "/";
 	for(var p in method.params) {
 		if (method.params.hasOwnProperty(p)) {
 			routestring += ":" + p + "/";
@@ -287,13 +287,13 @@ var buildroutestring = function(name,method) {
 
 // --------------------------------------------------------------------------
 // Builds an REST resource based on an API specification 
-var buildmethodresource = function(name,resource,specification,verb,methodname,app) {
+var buildmethodresource = function(name,root,resource,specification,verb,methodname,app) {
 	var method = resource.api[methodname];
-	var routestring = buildroutestring(name,method);
+	var routestring = buildroutestring(name,root,method);
 	var methodnamelc = methodname.toLowerCase();
 	var verblc = verb.toLowerCase();
 
-	documentmethod(specification,verb,methodname,method);
+	documentmethod(root,specification,verb,methodname,method);
 
 	if (method.open) {
 		app[verblc](routestring, route(name,methodnamelc,method));
@@ -310,18 +310,20 @@ var register = function(filename,resource,app) {
 	if (typeof resource.name !== "string") { throw (new Error("Resource " + filename + " requires a name")); return false;}
 	if (typeof resource.description !== "string") { throw (new Error("Resource " + name + " at " + filename + " requires a description")); return false;}
 	if (typeof resource.api !== "object") { throw (new Error("Resource " + name + " at "  + filename + " requires an API definition")); return false;}
+	if (typeof resource.root !== "string" && resource.root) { throw (new Error("Resource root for " + name + " at "  + filename + " must be a string")); return false;}
+	var root = resource.root?("/"+root+"/"):"/";
 	var specification = documentresource(resource);
 	for(var method in resource.api) {
 		if(resource.api.hasOwnProperty(method)) {
 			switch(method) {
-				case 'ENTRY': buildmethodresource(resource.name,resource,specification,'GET',method,app); break;
-				case 'COLLECTION': buildmethodresource(resource.name,resource,specification,'GET',method,app); break;
-				case 'ADD': buildmethodresource(resource.name,resource,specification,'POST',method,app); break;
+				case 'ENTRY': buildmethodresource(resource.name,root,resource,specification,'GET',method,app); break;
+				case 'COLLECTION': buildmethodresource(resource.name,root,resource,specification,'GET',method,app); break;
+				case 'ADD': buildmethodresource(resource.name,root,resource,specification,'POST',method,app); break;
 				case 'SAVE': 
-					buildmethodresource(resource.name,resource,specification,'PUT',method,app);
-					buildmethodresource(resource.name,resource,specification,'POST',method,app);
+					buildmethodresource(resource.name,root,resource,specification,'PUT',method,app);
+					buildmethodresource(resource.name,root,resource,specification,'POST',method,app);
 					break;
-				case 'REMOVE':buildmethodresource(resource.name,resource,specification,'DELETE',method,app); break;
+				case 'REMOVE':buildmethodresource(resource.name,root,resource,specification,'DELETE',method,app); break;
 			}
 		}
 	}
