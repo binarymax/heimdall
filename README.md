@@ -4,7 +4,7 @@ Heimdall is a type-safe, documentation oriented, and security minded HATEOAS API
 
 The goal of Heimdall is to provide an easy way to create reflective and secure REST resources, to enforce documentation standards, to separate req/res from the MVC pattern, and to ensure all incoming and outgoing data is registered, validated, and documented.   
 
-Heimdall uses a modified oDatav2[1] format for API responses, and EDM[2] for type-safety
+Heimdall uses a modified oDatav2[1] format for API responses, and standard types for validation and data safety.
 
 Heimdall is available for use under the MIT License
 
@@ -81,11 +81,11 @@ Visiting http://example.com/helloworld returns the following JSON:
 
 ## Hex to RGB Example
 
-Consider a simple resource that accepts a hex color value, and returns its respective rgb value.  First we include the Heimdall EDM data types, then layout the resource.
+Consider a simple resource that accepts a hex color value, and returns its respective rgb value.  First we include the Heimdall datatypes, then layout the resource.
   
 ```js
 var heimdall = require('heimdall');
-var datatype = heimdall.oData.Edm;
+var datatype = heimdall.datatypes;
 module.exports = {
 	name: "hex",
 	description: "An API resource for hex colors",
@@ -205,7 +205,7 @@ Here is another example of a resource declaration for a todo list API:
 
 ```js
 var controller = require('../controllers/todo')
-  , edm = require('../../../heimdall').oData.Edm;
+  , datatypes = require('../../../heimdall').datatypes;
 
  module.exports = {
 
@@ -218,14 +218,14 @@ var controller = require('../controllers/todo')
 		ENTRY: {
 			description:"Gets a specific To-Do Item",
 			params:{
-				id:edm.int64("The ID of the item entry to retrieve",true)
+				id:datatypes.int64("The ID of the item entry to retrieve",true)
 			},
 			fields:{
-				id:edm.int64("The ID of the item"),
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system"),
-				isdeleted:edm.boolean("True if the item has been removed from the list")
+				id:datatypes.int64("The ID of the item"),
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system"),
+				isdeleted:datatypes.boolean("True if the item has been removed from the list")
 			},
 			command:controller.Entry
 		},
@@ -233,14 +233,14 @@ var controller = require('../controllers/todo')
 		COLLECTION: {
 			description:"Gets a list of Todo Items for a List",
 			query:{
-				isdone:edm.boolean("If true, only returns done items")
+				isdone:datatypes.boolean("If true, only returns done items")
 			},
 			fields:{
-				id:edm.int64("The ID of the item"),
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system"),
-				isdeleted:edm.boolean("True if the item has been removed from the list")
+				id:datatypes.int64("The ID of the item"),
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system"),
+				isdeleted:datatypes.boolean("True if the item has been removed from the list")
 			},
 			command:controller.Collection
 		},
@@ -248,15 +248,15 @@ var controller = require('../controllers/todo')
 		ADD: {
 			description:"Adds a new Todo Item to a List",
 			body:{
-				description:edm.string("The textual description of the item",true),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system")
+				description:datatypes.string("The textual description of the item",true),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system")
 			},
 			fields:{
-				id:edm.int64("The ID of the newly added item"),
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system")
+				id:datatypes.int64("The ID of the newly added item"),
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system")
 			},
 			command:controller.Add
 		},
@@ -264,18 +264,18 @@ var controller = require('../controllers/todo')
 		SAVE: {
 			description:"Saves a specific Todo Item",
 			params:{
-				id:edm.int64("The ID of the item entry to save",true)
+				id:datatypes.int64("The ID of the item entry to save",true)
 			},
 			body:{
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system")
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system")
 			},
 			fields:{
-				id:edm.int64("The ID of the saved Todo item"),
-				description:edm.string("The textual description of the item"),
-				donedate:edm.datetime("The date/time when the item was marked as done, null otherwise"),
-				createdate:edm.datetime("The date the item was entered into the system")
+				id:datatypes.int64("The ID of the saved Todo item"),
+				description:datatypes.string("The textual description of the item"),
+				donedate:datatypes.datetime("The date/time when the item was marked as done, null otherwise"),
+				createdate:datatypes.datetime("The date the item was entered into the system")
 			},
 			command:controller.Save
 		},
@@ -283,10 +283,10 @@ var controller = require('../controllers/todo')
 		REMOVE: {
 			description:"Marks a specific Todo Item as deleted",
 			params:{
-				id:edm.int64("The ID of the item entry to remove",true)
+				id:datatypes.int64("The ID of the item entry to remove",true)
 			},
 			fields:{
-		        affectedRows: edm.int32("The number of records effected by the removal")
+		        affectedRows: datatypes.int32("The number of records effected by the removal")
 			},
 			command:controller.Remove
 		}
@@ -346,11 +346,11 @@ Here is an example of the COLLECTION.command function:
 
 ## Security
  
-We can also pass in security functions as middleware into our heimdall load.  This will lock down all resource methods that do not declare open:true in the specification.  For example, if we want to secure all our resources to be accessible only to the local machine, we just do this:
+We can also pass in a security functions as middleware into our heimdall load.  This will lock down all resource methods that do not declare open:true in the specification.  For example, if we want to secure all our resources to be accessible only to the local machine, we just do this:
 
 ```js
 var authenticate = function(req,res,next) { 
-	if(req.headers.ip==='127.0.0.1') {
+	if(req.ips[0]==='127.0.0.1') {
 		next();
 	} else { 
 		res.send(403);
@@ -359,32 +359,107 @@ var authenticate = function(req,res,next) {
 heimdall.load(api,app,authenticate);
 ```
 
-A more complex example with a username/password session authentication will be available soon.
+
+
  
 ## Types
 
-Heimdall uses the oData EDM (entity data model) type system.  The available types are listed below, and can be used in params, query, body, and fields declarations.
+Heimdall uses commonly found datatypes as a type system.  The core types are listed below, and can be used in params, query, body, and fields declarations.
 
- - heimdall.oData.EDM.NULL
- - heimdall.oData.EDM.binary
- - heimdall.oData.EDM.boolean
- - heimdall.oData.EDM.byte
- - heimdall.oData.EDM.datetime
- - heimdall.oData.EDM.decimal
- - heimdall.oData.EDM.double
- - heimdall.oData.EDM.single
- - heimdall.oData.EDM.guid
- - heimdall.oData.EDM.int16
- - heimdall.oData.EDM.int32
- - heimdall.oData.EDM.int64
- - heimdall.oData.EDM.sbyte
- - heimdall.oData.EDM.string
- - heimdall.oData.EDM.time
- - heimdall.oData.EDM.datetimeoffset
+ - heimdall.datatypes.NULL
+ - heimdall.datatypes.binary
+ - heimdall.datatypes.boolean
+ - heimdall.datatypes.byte
+ - heimdall.datatypes.datetime
+ - heimdall.datatypes.decimal
+ - heimdall.datatypes.double
+ - heimdall.datatypes.single
+ - heimdall.datatypes.guid
+ - heimdall.datatypes.int16
+ - heimdall.datatypes.int32
+ - heimdall.datatypes.int64
+ - heimdall.datatypes.sbyte
+ - heimdall.datatypes.string
+ - heimdall.datatypes.time
+ - heimdall.datatypes.datetimeoffset
  
+## Custom Types
+
+Heimdall also enables custom plugin datatypes.  A type can be declared by your application by calling the heimdall.type method.  Plugin types must be declared before the heimdall.load method is called.
+
+The heimdall.type method accepts one object parameter that has the following properties:
+ - name <string> - the name of the type.  This cannot be a duplicate, and an error will be thrown if the type already exists
+ - validation <function> - this method is called before cast and must return a true or false.  If false, the API returns a validation error.  If true, the cast method is called before adding the value to the data object for the command.
+ - cast <function> (optional) - as all data originates as a string from the params, querystring, or body, this method allows you to cast the string into a native javascript datatype.  If this method is not included, the value is passed as a string. 
+
+Declaring a type and then reusing it throughout the API is a powerful way to abstract away common API data validation and casting, for values that need more control than is offered by the core datatypes.
+
+For example, suppose you need a string identifier that is guaranteed to be 20 characters in length or less, and it is used throughout your API.  Rather than having to write validation in your controllers, consider declaring this custom type:
+
+```js
+heimdall.type({ 
+	name:"string20", 
+	validate:function(val){ return (val && val.length<=20)?true:false; }
+});
+```
+
+Now, you can use this type in the params, query, or body declarations in API resources...
+
+```js
+	params:{
+		"widgetid":datatypes.string20("The widget string identifier")
+	},
+```
+
+Casting is also a great way to simplify tasks.  Building on our above hex example, this is an example of a custom hexadecimal type, that uses the cast method to make for clearer controller code:
+
+```js
+heimdall.type({ 
+	name:"hexadecimal", 
+	validate:function(val){ return (/^([a-f0-9]{6})$/i).test(val)?true:false; },
+	cast:function(val){ 
+		return [
+			parseInt(val.substr(0,2),16),
+			parseInt(val.substr(2,2),16),
+			parseInt(val.substr(4,2),16)
+		]; 
+	}
+});
+```
+
+Now we can use the hexadecimal type in our API:
+
+```js
+var heimdall  = require('../../../heimdall');
+var datatypes = heimdall.datatypes;
+
+module.exports = {
+	name: "hex2",
+	description: "An API resource for hex colors",
+	api: {
+		ENTRY:{
+			description:"Converts a hexadecimal value to rgb, using the extended hexadecimal type",
+			params:{
+				"color":datatypes.hexadecimal("The Hexadecimal color")
+			},
+			fields:{
+				"r":datatypes.byte("The red value"),
+				"g":datatypes.byte("The green value"),
+				"b":datatypes.byte("The blue value")
+			},
+			command: function(data,callback) {
+				//data.color has been validated and cast as a datatypes.hexadecimal 
+				//this command will not be called if the validation failed, so ...   
+				//data.color is guaranteed to be an array of 3 integers
+				callback(null,[{r:data.color[0],g:data.color[1],b:data.color[2]}]);
+			}
+		}
+	}
+}
+```
+
 
 ## References
  - [1] The oData specification can be found at http://odata.org/
- - [2] EDM details can be found at http://www.odata.org/documentation/odata-v2-documentation/overview/#6_Primitive_Data_Types
 
 ###### *Made with love by Max Irwin (http://binarymax.com)*
