@@ -24,6 +24,7 @@ var security  = {authenticate:function(req,res,next){next()},administrator:funct
 var format = function(host,uri,type,records) {
 	var __index = 0;
 	var baseuri = "//" + host;
+	if (!(records instanceof Array)) records = [records]; 
 	var oData = {d:{
 		__count : records.length,
 		results : records.map(function(rec){
@@ -354,6 +355,14 @@ var renderview = function(req,res,view) {
 
 	//Inherit chained heimdall data
 	var data = req.heimdall ? req.heimdall.d : {};
+
+	//Add params data to the view object
+	data.params = {};
+	for(var key in req.params) {
+		if(req.params.hasOwnProperty(key)) {
+			data.params[key] = req.params[key];
+		}
+	}
 
 	//Add query data to the view object
 	data.query = {};
