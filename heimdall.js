@@ -524,6 +524,17 @@ var type = Heimdall.type = function(datatype) {
 }
 
 // --------------------------------------------------------------------------
+// Heimdall extended DataType creation method
+//  params:
+//    @datatypes - an array of type objects to create
+var types = Heimdall.types = function(datatypes) {
+	var heimdall_types_not_found = "ERROR - An array of datatypes was not provided";
+	if(!datatypes || !(datatypes instanceof Array)) throw new Error(heimdall_types_not_found);
+
+	datatypes.map(type);
+};
+
+// --------------------------------------------------------------------------
 // Heimdall Main entry point
 //  params:
 //    @path - the absolute path to the API definition files
@@ -558,4 +569,4 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 
 // =============================================================================
 // Declare default datatypes
-require('./datatypes').defaults.map(type);
+types(require('./datatypes').defaults);
