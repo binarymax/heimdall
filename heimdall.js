@@ -79,7 +79,13 @@ var route = function(name,type,method) {
 					if(datatype.validate(source[key])) {
 						data[key] = datatype.cast(source[key]);
 					} else {
-						res.status(449).send(error("Type Error: '" + source[key] + "' is not a valid value for '" + key + "'",449,"Retry with " + datatype.type));
+						var errormessage;
+						if (specification[key].required && !source[key]) {
+							errormessage = "Missing Required Parameter: a value must be supplied for '" + key + "'";
+						} else {
+							errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
+						}
+						res.status(449).send(error(errormessage,449,"Retry with " + datatype.type));
 						return false;
 					}
 				}
