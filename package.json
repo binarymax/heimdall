@@ -1,7 +1,7 @@
 {
   "name": "heimdall",
   "author": "binarymax",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "keywords": [
     "API",
     "HATEOAS",
