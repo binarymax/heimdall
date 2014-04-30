@@ -22,10 +22,12 @@ var documentresource = Documenter.resource = function(resource){
 		name:resource.name,
 		description:resource.description,
 		methods:[]
-	}
+	};
+
 	specifications.push(specification);
+	
 	return specification;
-}
+};
 
 // --------------------------------------------------------------------------
 // Registers a heimdall-compliant API method specification  
@@ -63,7 +65,7 @@ var documentmethod = Documenter.method = function(root,specification,verb,method
 	inputspec('fields');
 
 	specification.methods.push(doc);
-}
+};
 
 
 // --------------------------------------------------------------------------
@@ -82,7 +84,7 @@ var route = Documenter.route = function(app) {
 		res.json(format(req.headers.host,req.url,'API.Resource',specifications));
 	});
 
-	var getSpec = function(name) {
+	var getspec = function(name) {
 		var spec = null;
 
 		for(var i=0,l=specifications.length;i<l;i++) {
@@ -93,11 +95,11 @@ var route = Documenter.route = function(app) {
 		}
 		
 		return spec;
-	}
+	};
 
 	app.get("/api/:name.html",function(req,res,next) {
 
-		var spec = getSpec(req.params.name)
+		var spec = getspec(req.params.name);
 		
 		if(!spec) {
 			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));
@@ -112,7 +114,7 @@ var route = Documenter.route = function(app) {
 
 	app.get("/api/:name",function(req,res) {
 
-		var spec = getSpec(req.params.name)
+		var spec = getspec(req.params.name);
 
 		if(!spec) {
 			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));

@@ -18,7 +18,7 @@ var parseview = function(view,params) {
 		}
 	}
 	return view;
-}
+};
 
 //Renders the view, after verifying the template exists
 var renderview = function(req,res,view) {		
@@ -26,9 +26,11 @@ var renderview = function(req,res,view) {
 	//Inherit chained heimdall data
 	var data = req.heimdall ? req.heimdall.d : {};
 
+	var key;
+
 	//Add params data to the view object
 	data.params = {};
-	for(var key in req.params) {
+	for(key in req.params) {
 		if(req.params.hasOwnProperty(key)) {
 			data.params[key] = req.params[key];
 		}
@@ -36,7 +38,7 @@ var renderview = function(req,res,view) {
 
 	//Add query data to the view object
 	data.query = {};
-	for(var key in req.query) {
+	for(key in req.query) {
 		if(req.query.hasOwnProperty(key)) {
 			data.query[key] = req.query[key];
 		}
@@ -44,7 +46,7 @@ var renderview = function(req,res,view) {
 
 	//Add session data to the view object
 	data.session = {};
-	for(var key in req.session) {
+	for(key in req.session) {
 		if(req.session.hasOwnProperty(key) && key!= 'cookie') {
 			data.session[key] = req.session[key];
 		}
@@ -54,7 +56,7 @@ var renderview = function(req,res,view) {
 	data.request.url = req.url;
 
 	res.render(view,data);
-}
+};
 
 // --------------------------------------------------------------------------
 //Public Heimdall render method 
@@ -62,7 +64,7 @@ var render = Renderer.render = function(view) {
 
 	return function(req,res){
 
-		var notfound = function(){ res.send(404); }
+		var notfound = function(){ res.send(404); };
 
 		var viewname = parseview(view,req.params);
 		
@@ -93,5 +95,5 @@ var render = Renderer.render = function(view) {
 										
 			});
 		}
-	}
-}
+	};
+};

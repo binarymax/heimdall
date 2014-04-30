@@ -21,11 +21,18 @@ var routes    = [];
 var env;
 
 //Default security middleware, can override
-var security  = {authenticate:function(req,res,next){next()},administrator:function(req,res,next){res.send(403)}};
+var security  = {authenticate:function(req,res,next){next();},administrator:function(req,res,next){res.send(403);}};
 
 //Tool library shortcuts
 var format = tools.format;
-var error = tools.error;
+var error = function() {
+	var data = tools.error.apply(this,arguments);
+	if (env === 'development') {
+		//Verbose console errors for development environments 
+		console.error(data.error);
+	}
+	return data;
+};
 
 // ==========================================================================
 // Heimdall Exports Object:
@@ -72,13 +79,13 @@ var route = function(name,type,method) {
 					if(datatype.validate(source[key])) {
 						data[key] = datatype.cast(source[key]);
 					} else {
-						res.status(449).send(error("Type Error: '" + source[key] + "' is not a valid value for '" + key + "'",449,"Retry with " + datatype.type))
+						res.status(449).send(error("Type Error: '" + source[key] + "' is not a valid value for '" + key + "'",449,"Retry with " + datatype.type));
 						return false;
 					}
 				}
 			}
 			return true;
-		}	
+		};	
 
 		if(method.query && !check(method.query,req.query)) return false;
 		
@@ -141,20 +148,20 @@ var buildmethodresource = function(name,root,resource,specification,verb,methodn
 
 	if (method.open) {
 		app[verblc](routestring, route(name,methodnamelc,method));
-	} else 	if (method.admin) {
+	} else if (method.admin) {
 		app[verblc](routestring, security.administrator, route(name,methodnamelc,method));
 	} else {  
 		app[verblc](routestring, security.authenticate, route(name,methodnamelc,method));
 	}
-}
+};
 
 // --------------------------------------------------------------------------
 // Registers all the resources for a heimdall-compliant API specification 
 var register = function(filename,resource,app) {
-	if (typeof resource.name !== "string") { throw (new Error("Resource " + filename + " requires a name")); return false;}
-	if (typeof resource.description !== "string") { throw (new Error("Resource " + name + " at " + filename + " requires a description")); return false;}
-	if (typeof resource.api !== "object") { throw (new Error("Resource " + name + " at "  + filename + " requires an API definition")); return false;}
-	if (typeof resource.root !== "string" && resource.root) { throw (new Error("Resource root for " + name + " at "  + filename + " must be a string")); return false;}
+	if (typeof resource.name !== "string") { throw (new Error("Resource " + filename + " requires a name"));}
+	if (typeof resource.description !== "string") { throw (new Error("Resource " + name + " at " + filename + " requires a description"));}
+	if (typeof resource.api !== "object") { throw (new Error("Resource " + name + " at "  + filename + " requires an API definition"));}
+	if (typeof resource.root !== "string" && resource.root) { throw (new Error("Resource root for " + name + " at "  + filename + " must be a string"));}
 	var root = resource.root?("/"+root+"/"):"/";
 	var specification = documenter.resource(resource);
 	for(var method in resource.api) {
@@ -201,7 +208,7 @@ var set = Heimdall.set = function(query) {
 	return function(req,res,next) { 
 		for(var key in query) { if(query.hasOwnProperty(key)) { req.query[key] = query[key]; } }
 		next();
-	}
+	};
 };
 
 // --------------------------------------------------------------------------
@@ -228,7 +235,7 @@ var chain = Heimdall.chain = function(name,type) {
 		return function(req,res,next) {
 			req.heimdallchain = true;
 			routes[name+'_'+type].call(this,req,res,next);
-		}
+		};
 	} else {
 		var heimdall_chain_not_found = "ERROR - The Heimdall route ["+name+"."+type+"] does not exist";
 		throw new Error(heimdall_chain_not_found);
@@ -244,8 +251,8 @@ var cache = Heimdall.cache = function(duration) {
 	return function(req,res,next) {
 		req.heimdallcacheduration = duration;
 		next();
-	}
-}
+	};
+};
 
 //===========================================================================
 // Public Heimdall Initialization methods
@@ -274,7 +281,7 @@ var type = Heimdall.type = function(datatype) {
 
 	new DataType(datatype.name, validate, cast);	
 	
-}
+};
 
 // --------------------------------------------------------------------------
 // Heimdall extended DataType creation method
@@ -295,6 +302,10 @@ var types = Heimdall.types = function(datatypes) {
 //    @auth - optional authentication middleware
 var load = Heimdall.load = function(path,app,auth,admin) {
 
+	//Set Express environment context
+	env = app.get('env');
+
+	//Override security middleware if specified
 	if (typeof auth==='function') security.authenticate = auth;
 	if (typeof admin==='function') security.administrator = admin;
 
@@ -311,14 +322,13 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 		}
 	}
 	
-	env = app.get('env');
-
+	//Load documentation routes
 	documenter.route(app);
 
 	//Chain after load:
 	return Heimdall;
 
-}
+};
 
 // =============================================================================
 // Declare default datatypes

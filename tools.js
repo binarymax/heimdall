@@ -9,7 +9,7 @@ var format = Tools.format = function(host,uri,type,records) {
 		__count : records.length,
 		results : records.map(function(rec){
 			rec.__index         = __index++;
-			rec.__metadata      = rec.__metadata      || {}
+			rec.__metadata      = rec.__metadata      || {};
 			rec.__metadata.uri  = rec.__metadata.uri  || (baseuri+uri);  
 			rec.__metadata.type = rec.__metadata.type || type;  
 			return rec;
@@ -31,14 +31,9 @@ var error = Tools.error = function(err,code,message,innererror) {
 			message : message,
 			innererror : innererror||err
 	}};
-	
-	if ('development' == env) {
-		//Verbose console errors for development environments 
-		console.error(oData.error);
-	}
-	
+		
 	return oData;
-}
+};
 
 var buildroutestring = Tools.buildroutestring = function(name,root,method) {
 	var routestring = root + name + "/";
@@ -48,4 +43,4 @@ var buildroutestring = Tools.buildroutestring = function(name,root,method) {
 		}
 	}
 	return routestring + "?";
-}
+};
