@@ -8,9 +8,12 @@
 
 //Module dependencies
 var fs = require('fs');
- 
+
+var tools = require('./tools');
+var documenter = require('./documenter');
+var render = require('./renderer').render;
+
 //All valid resources loaded by Heimdall
-var specifications = [];
 var resources = [];
 var routes    = [];
 
@@ -20,45 +23,9 @@ var env;
 //Default security middleware, can override
 var security  = {authenticate:function(req,res,next){next()},administrator:function(req,res,next){res.send(403)}};
 
-//Formats an oData-V2-style JSON response
-var format = function(host,uri,type,records) {
-	var __index = 0;
-	var baseuri = "//" + host;
-	if (!(records instanceof Array)) records = [records]; 
-	var oData = {d:{
-		__count : records.length,
-		results : records.map(function(rec){
-			rec.__index         = __index++;
-			rec.__metadata      = rec.__metadata      || {}
-			rec.__metadata.uri  = rec.__metadata.uri  || (baseuri+uri);  
-			rec.__metadata.type = rec.__metadata.type || type;  
-			return rec;
-		})
-	}};
-	
-	if (records.__prev) oData.d.__prev = records.__prev;
-	if (records.__next) oData.d.__next = records.__next;
-	
-	return oData;
-};
-
-//Formats an oData-V2-style JSON error response
-var error = function(err,code,message,innererror) {
-	code = (code||500).toString();
-	message = message||"Internal Server Error";
-	var oData = {error:{
-			code : code,
-			message : message,
-			innererror : innererror||err
-	}};
-	
-	if ('development' == env) {
-		//Verbose console errors for development environments 
-		console.error(oData.error);
-	}
-	
-	return oData;
-}
+//Tool library shortcuts
+var format = tools.format;
+var error = tools.error;
 
 // ==========================================================================
 // Heimdall Exports Object:
@@ -158,143 +125,19 @@ var route = function(name,type,method) {
 };
 
 
-// --------------------------------------------------------------------------
-// Registers a heimdall-compliant API specification  
-var documentresource = function(resource){
-	return {
-		__metadata:{
-			uri:'/api/'+resource.name,
-			type:'api.resource'
-		},
-		__deferred:{
-			uri:'/api/'+resource.name+'.html'
-		},
-		name:resource.name,
-		description:resource.description,
-		methods:[]
-	}
-}
-
-// --------------------------------------------------------------------------
-// Registers a heimdall-compliant API method specification  
-var documentmethod = function(root,specification,verb,methodtype,method) {
-
-	var url  = buildroutestring(specification.name,root,method);
-	var type = specification.name + '.' + methodtype.toLowerCase();
-
-	var doc = {verb:verb,description:method.description,url:url,type:type};
-
-	verb = verb.toUpperCase();
-
-	var inputspec = function(items) {
-		var obj = method[items];
-		if (obj) {
-			var list = [];
-			for (var o in obj) {
-				if(obj.hasOwnProperty(o)) {
-					list.push({
-						key:o,
-						type:obj[o].type.type,
-						description:obj[o].description,
-						required:obj[o].required
-					});
-				}
-			}
-			if(list.length) doc[items] = list;
-		}
-	};
-
-	inputspec('params');
-	inputspec('query');
-	inputspec('body');
-	inputspec('files');
-	inputspec('fields');
-
-	specification.methods.push(doc);
-}
-
-
-// --------------------------------------------------------------------------
-// Creates API Documentation resources for all Heimdall-Compliant routes 
-var documentation = function(app) {
-	
-	var viewpath = __dirname+'/views/api';	
-
-	app.get("/api.html",function(req,res,next) {
-		req.heimdall = format(req.headers.host,req.url,'API.Resource',specifications);
-		next();
-	},render(viewpath));
-	
-
-	app.get("/api",function(req,res) {
-		res.json(format(req.headers.host,req.url,'API.Resource',specifications));
-	});
-
-	var getSpec = function(name) {
-		var spec = null;
-
-		for(var i=0,l=specifications.length;i<l;i++) {
-			if (specifications[i].name === name) {
-				spec = specifications[i];
-				break;
-			}
-		}
-		
-		return spec;
-	}
-
-	app.get("/api/:name.html",function(req,res,next) {
-
-		var spec = getSpec(req.params.name)
-		
-		if(!spec) {
-			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));
-			return false;
-		}
-
-		req.heimdall = format(req.headers.host,req.url,'API.Resource',[spec]);
-		next();
-
-	},render(viewpath));
-
-
-	app.get("/api/:name",function(req,res) {
-
-		var spec = getSpec(req.params.name)
-
-		if(!spec) {
-			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));
-			return false;
-		}
-		
-		res.json(format(req.headers.host,req.url,'API.Resource',[spec]));
-
-	});
-
-
-}; 
 
 // --------------------------------------------------------------------------
 // Builds a url route string, based on accepted method params 
-var buildroutestring = function(name,root,method) {
-	var routestring = root + name + "/";
-	for(var p in method.params) {
-		if (method.params.hasOwnProperty(p)) {
-			routestring += ":" + p + "/";
-		}
-	}
-	return routestring + "?";
-}
 
 // --------------------------------------------------------------------------
 // Builds an REST resource based on an API specification 
 var buildmethodresource = function(name,root,resource,specification,verb,methodname,app) {
 	var method = resource.api[methodname];
-	var routestring = buildroutestring(name,root,method);
+	var routestring = tools.buildroutestring(name,root,method);
 	var methodnamelc = methodname.toLowerCase();
 	var verblc = verb.toLowerCase();
 
-	documentmethod(root,specification,verb,methodname,method);
+	documenter.method(root,specification,verb,methodname,method);
 
 	if (method.open) {
 		app[verblc](routestring, route(name,methodnamelc,method));
@@ -313,7 +156,7 @@ var register = function(filename,resource,app) {
 	if (typeof resource.api !== "object") { throw (new Error("Resource " + name + " at "  + filename + " requires an API definition")); return false;}
 	if (typeof resource.root !== "string" && resource.root) { throw (new Error("Resource root for " + name + " at "  + filename + " must be a string")); return false;}
 	var root = resource.root?("/"+root+"/"):"/";
-	var specification = documentresource(resource);
+	var specification = documenter.resource(resource);
 	for(var method in resource.api) {
 		if(resource.api.hasOwnProperty(method)) {
 			switch(method) {
@@ -328,107 +171,9 @@ var register = function(filename,resource,app) {
 			}
 		}
 	}
-	specifications.push(specification); 
 };
 
 
-// --------------------------------------------------------------------------
-// Render helper functions
-
-//Cached template file existence
-var templateexists = [];
-
-//Get the expanded name of a view with req.params
-var parseview = function(view,params) {
-	if (view.indexOf(":")>-1) {
-		for(var key in params) {
-			if (params.hasOwnProperty(key)) {
-				view = view.replace(":"+key, params[key]);
-			}
-		}
-	}
-	return view;
-}
-
-//Renders the view, after verifying the template exists
-var renderview = function(req,res,view) {		
-
-	//Inherit chained heimdall data
-	var data = req.heimdall ? req.heimdall.d : {};
-
-	//Add params data to the view object
-	data.params = {};
-	for(var key in req.params) {
-		if(req.params.hasOwnProperty(key)) {
-			data.params[key] = req.params[key];
-		}
-	}
-
-	//Add query data to the view object
-	data.query = {};
-	for(var key in req.query) {
-		if(req.query.hasOwnProperty(key)) {
-			data.query[key] = req.query[key];
-		}
-	}
-
-	//Add session data to the view object
-	data.session = {};
-	for(var key in req.session) {
-		if(req.session.hasOwnProperty(key) && key!= 'cookie') {
-			data.session[key] = req.session[key];
-		}
-	}
-
-	data.request = {};
-	data.request.url = req.url;
-
-	res.render(view,data);
-}
-
-//===========================================================================
-// Public Heimdall Middleware methods
-//===========================================================================
-
-// --------------------------------------------------------------------------
-//Public Heimdall render method 
-var render = Heimdall.render = function(view) {
-
-	return function(req,res){
-
-		var notfound = function(){ res.send(404); }
-
-		var viewname = parseview(view,req.params);
-		
-		if (templateexists[viewname] === true) {
-			//template known to exist, render
-			renderview(req,res,viewname);
-
-		} else if (templateexists[viewname] === false) {
-			//template known to not exist, 404
-			notfound();
-
-		} else {
-			//check if template exists
-			var filename = (viewname.indexOf('/heimdall/views/')>-1?viewname:process.cwd()+'/views/'+viewname)+'.jade';
-			fs.exists(filename, function(exists) {
-
-				if (exists) { 
-					//Template exists!  Cache result and render
-					templateexists[viewname]=true;
-					renderview(req,res,viewname);
-
-				} else {
-					//Template does not exist!  Cache result and 404
-					templateexists[viewname]=false;
-					notfound(); 
-
-				}
-										
-			});
-		}
-	}
-}
 
 // --------------------------------------------------------------------------
 // Expose heimdall resource calls for use by other modules 
@@ -441,6 +186,14 @@ var resource = Heimdall.resource = function(name,type,data,callback) {
 		callback(heimdall_resource_not_found);
 	}
 };
+
+//===========================================================================
+// Public Heimdall Middleware methods
+//===========================================================================
+
+// --------------------------------------------------------------------------
+//Public Heimdall render method 
+Heimdall.render = render;
 
 // --------------------------------------------------------------------------
 // Middleware to set a querystring value or values 
@@ -560,7 +313,7 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 	
 	env = app.get('env');
 
-	documentation(app);
+	documenter.route(app);
 
 	//Chain after load:
 	return Heimdall;
