@@ -31,7 +31,7 @@ if ('development' == app.get('env')) {
 
 heimdall.load(process.cwd() + '/api/',app);
 
-app.get('/index.html',heimdall.middleware('todo','collection'),heimdall.render('index.jade'));
+app.get('/index.html',heimdall.middleware('todo','collection'),heimdall.render('index'));
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
