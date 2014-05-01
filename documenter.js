@@ -21,7 +21,7 @@ var documentresource = Documenter.resource = function(resource){
 		},
 		name:resource.name,
 		description:resource.description,
-		methods:[]
+		methods:{}
 	};
 
 	specifications.push(specification);
@@ -64,7 +64,7 @@ var documentmethod = Documenter.method = function(root,specification,verb,method
 	inputspec('files');
 	inputspec('fields');
 
-	specification.methods.push(doc);
+	specification.methods[methodtype.toLowerCase()] = doc;
 };
 
 
@@ -72,12 +72,14 @@ var documentmethod = Documenter.method = function(root,specification,verb,method
 // Creates API Documentation resources for all Heimdall-Compliant routes 
 var route = Documenter.route = function(app) {
 	
-	var viewpath = __dirname+'/views/api';	
+	var viewpath = __dirname+'/views/';
+	var apiview = viewpath + 'api';
+	var methodview = viewpath + 'method'
 
 	app.get("/api.html",function(req,res,next) {
 		req.heimdall = format(req.headers.host,req.url,'API.Resource',specifications);
 		next();
-	},render(viewpath));
+	},render(apiview));
 	
 
 	app.get("/api",function(req,res) {
@@ -109,7 +111,7 @@ var route = Documenter.route = function(app) {
 		req.heimdall = format(req.headers.host,req.url,'API.Resource',[spec]);
 		next();
 
-	},render(viewpath));
+	},render(apiview));
 
 
 	app.get("/api/:name",function(req,res) {
@@ -125,5 +127,44 @@ var route = Documenter.route = function(app) {
 
 	});
 
+	app.get("/api/:name/:type.html",function(req,res,next) {
+
+		var spec = getspec(req.params.name);
+		var meth = spec.methods[req.params.type.toLowerCase()];
+
+		if(!spec) {
+			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));
+			return false;
+		}
+
+		if(!meth) {
+			res.status(404).send(error("The API resource specification method '/api/" + req.params.name + "/" + req.params.type + "' could not be found, please check the URL and try again",404,"404 (not found)"));
+			return false;			
+		}
+
+		req.heimdall = format(req.headers.host,req.url,'API.Resource.Method',[meth]);
+		next();
+
+	},render(methodview));
+
+
+	app.get("/api/:name/:type",function(req,res) {
+
+		var spec = getspec(req.params.name);
+		var meth = spec.methods[req.params.type.toLowerCase()];
+
+		if(!spec) {
+			res.status(404).send(error("The API resource specification '/api/" + req.params.name + "' could not be found, please check the URL and try again",404,"404 (not found)"));
+			return false;
+		}
+		
+		if(!meth) {
+			res.status(404).send(error("The API resource specification method '/api/" + req.params.name + "/" + req.params.type + "' could not be found, please check the URL and try again",404,"404 (not found)"));
+			return false;			
+		}
+
+		res.json(format(req.headers.host,req.url,'API.Resource.Method',[meth]));
+
+	});
 
 }; 

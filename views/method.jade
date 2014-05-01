@@ -1,0 +1,35 @@
+style.
+	* { font-family:sans-serif; }
+	.heimdall-list {list-style:none;}
+	.heimdall-resources {margin:0;padding:0;}
+	.heimdall-resource {padding:0.5em; margin:0.5em;border-top:1px solid #333;}
+	.heimdall-description {margin-top:1em;}
+	.heimdall-method,.heimdall-details {display:inline-block;margin:0.5em;border:1px solid #ccc;padding:0.5em;vertical-align:top;}
+	.heimdall-method {width:12em;}
+	.heimdall-details {width:50em;}
+	.heimdall-parameters {margin:0.5em;}
+
+h1 API
+
+ul.heimdall-list.heimdall-resources
+	for method in results
+		li
+			.heimdall-description= method.description
+			.heimdall-method
+				.heimdall-verb= method.verb
+				.heimdall-url= method.url
+			.heimdall-details 
+				ul.heimdall-list.heimdall-parameters
+					if method.query&&method.query.length
+						for query in method.query
+							li= '@' + query.key + ' <' + query.type + '> :: ' + query.description 
+					else
+						li
+							em This method has no querystring parameters
+				ul.heimdall-list.heimdall-parameters
+					if method.body&&method.body.length
+						for body in method.body
+							li= '@' + body.key + ' <' + body.type + '> :: ' + body.description 
+					else
+						li
+							em This method has no body parameters
