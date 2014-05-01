@@ -1,7 +1,7 @@
 /****************************************************************************
 *
 * Heimdall - a self documenting API Guardian for Express 
-* (c)Copyright 2014, Max Iwin
+* (c)Copyright 2014, Max Irwin
 * MIT License
 *
 ****************************************************************************/
@@ -85,7 +85,8 @@ var route = function(name,type,method) {
 						} else {
 							errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
 						}
-						res.status(449).send(error(errormessage,449,"Retry with " + datatype.type));
+						var apiurl = req.protocol+'://'+req.headers.host+'/api/'+name+'/'+type+'.html';
+						res.status(449).send(error(errormessage,449,"Retry with " + datatype.type,{description:errormessage,specification:apiurl}));
 						return false;
 					}
 				}
