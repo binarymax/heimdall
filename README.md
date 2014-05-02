@@ -1,8 +1,8 @@
 # Heimdall
 
-Heimdall is a type-safe, documentation oriented, and security minded HATEOAS API library for Express.
+Heimdall is a type-safe, documentation oriented, and security minded API library for Express.
 
-The goal of Heimdall is to provide an easy way to create reflective and secure REST resources, to enforce documentation standards, to separate req/res from the MVC pattern, and to ensure all incoming and outgoing data is registered, validated, and documented.   
+The goal of Heimdall is to provide an easy way to create reflective and secure REST resources, to enforce documentation standards, to separate req/res from the MVC pattern, and to ensure all incoming and outgoing data is registered, validated, documented, and tested.   
 
 Heimdall uses a modified oDatav2[1] format for API responses, and standard types for validation and data safety.
 
@@ -14,29 +14,43 @@ Heimdall is available for use under the MIT License
 npm install heimdall
 ```
 
+It is assumed that your app already has Express installed.  Heimdall does not install Express for you.  If you are not familiar with Express, you can learn more at http://expressjs.com/
+
+
 ## Setup
 
-When starting the app, Heimdall is passed a path that contains the API specification files and Express app object:
+When starting the app, Heimdall is passed at least two arguments: (1) a path that contains the API specification files and (2) the Express app object:
 
 ```js
-var api = process.cwd() + '/api/';
-var app = express();
+var express = require('express')
+  , heimdall= require('heimdall')
+  , http = require('http')
+  , app = express()
+  , api = process.cwd() + '/api/';
+
+/* ... configure express as usual ... */
+
 heimdall.load(api, app);
+
+http.createServer(app).listen(app.get('port'), function(){
+  console.log('Heimdall server listening on port ' + app.get('port'));
+});
+
 ```
 
-The api path should have at least one file.  An API specification file declares and documents a RESTful resource by including its available methods and all incoming and outgoing data for the resource.
+The api path should have at least one API specification file.  An API specification file declares and documents a RESTful resource by including its available methods and all incoming and outgoing data for the resource.
 
 
 ## Specification
 
 For a Heimdall API specification to be loaded, the module.exports must have the following required properties: 
- - name - The resource name (name:"todo" will create resource /todo)
- - description - The documentation description of the resource   
+ - name - The resource name (for example - name:"todo" will create the HTTP resource /todo)
+ - description - The documentation description of the resource
  - api - an object that contains the method details
 
 ## Hello World Example
 
-Consider a simple resource that accepts request, and returns 'Hello World'.
+Consider a simple resource that accepts a request from the client at /helloworld, and returns ['Hello', 'World'].
   
 ```js
 module.exports = {
@@ -52,8 +66,11 @@ module.exports = {
 	}
 }
 ```
+Note the complete absence of the req and res objects in the above example.  These are abstracted away in favor of a single data object that contains all incoming req values.  The callback in the command function is expected to return any error(s) and an array of data for the response.  Heimdall takes care of sending the appropriate response back to the client based on the error and data specified in the callback.  This frees your application from the burden of maintaining these objects down through your callback or promise chain, and lets you focus on implementing a pure MVC pattern.
 
-Visiting http://example.com/helloworld returns the following JSON:
+The COLLECTION method is one of the 5 accepted methods for resources, which will be covered in more detail later.
+
+Using the above example, visiting http://example.com/helloworld returns the following JSON:
 
 ```js
 {
@@ -129,7 +146,7 @@ The above specification creates a resource that validates our color and returns 
 }
 ```
 
-Our hex resource also validates for us.  Visiting http://example.com/hex/foobar returns the following JSON:
+Our hex resource also validates for us.  Visiting http://example.com/hex/foobar returns the following error JSON:
 
 ```js
 {
@@ -140,6 +157,23 @@ Our hex resource also validates for us.  Visiting http://example.com/hex/foobar 
   }
 }
 ```
+
+## Request/Response Flow
+
+The complete flow of a satisfied client request to a Heimdall resource is this:
+
+1. client sends request
+2. node http receives request
+3. express routes the request to heimdall
+4. heimdall validates the request data (if any validation fails, an error response is sent and steps 5 to 8 are not executed)
+5. heimdall aggregates the request data
+6. heimdall calls appropriate method command
+7. command does its job and executes the heimdall callback
+8. heimdall formats the outgoing response
+9. heimdall sends response to client
+10. client receives response
+
+NOTE: Step 6 wraps the command in a try...catch block.  If an exception is thrown by the command it is formatted and sent as an error response, and steps 7 to 8 are not executed.
 
 
 ## Self documenting
@@ -196,12 +230,12 @@ Visting our documentation at http://example.com/api returns the following JSON:
 }
 ```
 
-The specification above can be used by either a person or machine to consume the API
+The specification above can be used by either a person or machine to consume the API.  Visiting http://example.com/api.html returns the API documentation in a friendly HTML format.
 
 
 ## Todo List Example
 
-Here is another example of a resource declaration for a todo list API:
+Here is a more complete example of a resource declaration for a todo list API:
 
 ```js
 var controller = require('../controllers/todo')
@@ -305,6 +339,8 @@ In the above example the methods are mapped as follows:
  - SAVE is a PUT for /:resource/:id
  - REMOVE is a DELETE for /:resource/:id
 
+The method name must be UPPERCASE.
+
 Each method specification must have the following required properties
  - description - The documentation description of the resource method
  - command - A function that accepts one request data argument and one callback for the response data
@@ -315,7 +351,7 @@ Each method can also contain definitions for querystring, body and files request
  - body - The form body data that will be used by the resource (req.body)
  - files - The multipart form data file attachments that will be used by the resource (req.files)
 
-The ENTITY, SAVE, and REMOVE methods also require the "params" property, for definition of the resource id:
+The ENTRY, SAVE, and REMOVE methods also require the "params" property, for definition of the resource id:
 
   params: {
 	id: ... 
@@ -333,11 +369,11 @@ For the above Todo List COLLECTION method example, consider the following reques
 
 	/todo/?isdone=1&random=abc123
 
-The "isdone" is a declared querystring parameter for the method.  That parameter value will be passed into the COLLECTION.command function as a property.  However, the "random" parameter is not declared, and will not be passed into the COLLECTION.command function.
+The "isdone" property is a declared querystring parameter for the method.  That parameter value will be passed into the COLLECTION.command function as a property.  However, the "random" parameter is not declared, and will not be passed into the COLLECTION.command function.
 
 Here is an example of the COLLECTION.command function:
 
-	function(data,callback) {
+	command:function(data,callback) {
 		console.log(data.isdone); //true
 		console.log(data.random); //undefined
 		model.GetTodos(data.isdone,callback);
@@ -358,8 +394,6 @@ var authenticate = function(req,res,next) {
 };
 heimdall.load(api,app,authenticate);
 ```
-
-
 
  
 ## Types
@@ -411,7 +445,7 @@ Now, you can use this type in the params, query, or body declarations in API res
 	},
 ```
 
-Casting is also a great way to simplify tasks.  Building on our above hex example, this is an example of a custom hexadecimal type, that uses the cast method to make for clearer controller code:
+Casting is also a great way to simplify tasks.  Building on our above hex resource, this is an example of a custom hexadecimal type, that uses the cast method to make for clearer controller code:
 
 ```js
 heimdall.type({ 
@@ -448,9 +482,9 @@ module.exports = {
 				"b":datatypes.byte("The blue value")
 			},
 			command: function(data,callback) {
-				//data.color has been validated and cast as a datatypes.hexadecimal 
-				//this command will not be called if the validation failed, so ...   
-				//data.color is guaranteed to be an array of 3 integers
+				// data.color has been validated and cast as a datatypes.hexadecimal 
+				// this command will not be called if the validation failed, therefore   
+				// data.color is guaranteed to be an array of 3 integers
 				callback(null,[{r:data.color[0],g:data.color[1],b:data.color[2]}]);
 			}
 		}
@@ -460,6 +494,6 @@ module.exports = {
 
 
 ## References
- - [1] The oData specification can be found at http://odata.org/
+ - [1] The oData specification can be found at http://odata.org/ ...note that only the v2 json response format is utilized by Heimdall, and is otherwise unrelated.
 
 ###### *Made with love by Max Irwin (http://binarymax.com)*
