@@ -165,7 +165,7 @@ The complete flow of a satisfied client request to a Heimdall resource is this:
 1. client sends request
 2. node http receives request
 3. express routes the request to heimdall
-4. heimdall validates the request data (if any validation fails, an error response is sent and steps 5 to 8 are not executed)
+4. heimdall validates the request data (if validation fails, an error is created and steps 5 to 7 are not executed)
 5. heimdall aggregates the request data
 6. heimdall calls appropriate method command
 7. command does its job and executes the heimdall callback
@@ -173,7 +173,7 @@ The complete flow of a satisfied client request to a Heimdall resource is this:
 9. heimdall sends response to client
 10. client receives response
 
-NOTE: Step 6 wraps the command in a try...catch block.  If an exception is thrown by the command it is formatted and sent as an error response, and steps 7 to 8 are not executed.
+NOTE: Step 6 wraps the command in a _try...catch_ block.  If an exception is thrown by the command it is formatted and sent as an error response, and step 7 is aborted.
 
 
 ## Self documenting
