@@ -44,7 +44,7 @@ The api path should have at least one API specification file.  An API specificat
 ## Specification
 
 For a Heimdall API specification to be loaded, the module.exports must have the following required properties: 
- - name - The resource name (for example - name:"todo" will create the HTTP resource /todo)
+ - name - The resource name (for example - ```name:"todo"``` will create the HTTP resource /todo)
  - description - The documentation description of the resource
  - api - an object that contains the method details
 
@@ -175,10 +175,25 @@ The complete flow of a satisfied client request to a Heimdall resource is this:
 
 NOTE: Step 6 wraps the command in a _try...catch_ block.  If an exception is thrown by the command it is formatted and sent as an error response, and step 7 is aborted.
 
+## Reponse Format and Metadata
+
+Every response from a Heimdall resource comes in one of two formats: the _{d:{results:[...]}}_ format (_"d"_ for short), or the _{error:{...}}_ format.
+
+These formats are used to provide a standard that client libraries can rely on for consitency, as well as avoid some idiosyncrasies in javascript.  For example, ({})?true:false; will return true - even though the object is empty.  But ({}).d?true:false; will return false.
+
+### _"d"_
+
+The _"d"_ format always contains at least two properties: a results array, and a __count integer.  __count is the number of items in the results array, so is easily testable on the client for an empty set.
+
+The results property is an array of objects.  Each object contains the data returned by the command, and a __metadata object.  The __metadata object always contains at least 2 properties: url and type.  See the above helloworld and hex examples to see it in action.
+
+### _"error"_
+
+The _"error"_ format always contains at least three properties: the error code, the error message, and the innererror description.  The difference between message and innererror is that the former is a standard message while the latter can contain internal application details such as a stack trace or a validation failure description.
 
 ## Self documenting
 
-For the above hex example - not only did we create two working resources (hex and helloworld), but we also constructed everything we need to supply complete documentation to anyone who wants to consume our API.
+For the above examples - not only did we create two working resources (hex and helloworld), but we also constructed everything we need to supply complete documentation to anyone who wants to consume our API.
 
 Visting our documentation at http://example.com/api returns the following JSON:
 
