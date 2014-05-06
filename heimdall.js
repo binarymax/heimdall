@@ -9,6 +9,8 @@
 //Module dependencies
 var fs = require('fs');
 
+var datatype = require('datatype');
+
 var tools = require('./tools');
 var documenter = require('./documenter');
 var render = require('./renderer').render;
@@ -36,26 +38,7 @@ var error = function() {
 
 // ==========================================================================
 // Heimdall Exports Object:
-var Heimdall = module.exports = {datatypes:{}};
-
-// --------------------------------------------------------------------------
-// DataType helper.  Used for validation and casting
-var DataType = function(type,validate,cast) {
-	var self = this;
-	self.type = type;
-	self.validate = validate;
-	self.cast = cast||function(val){return val;};
-	Heimdall.datatypes[type] = function(description,required) {
-		return new DataTypeClass(self,description,required);
-	};
-};
-
-var DataTypeClass = function(datatype,description,required) {
-	var self = this;
-	self.type = datatype;
-	self.description = description||datatype.type;
-	self.required = required?true:false;
-};
+var Heimdall = module.exports = {datatypes:datatype};
 
 // --------------------------------------------------------------------------
 // Creates a heimdall route for a request
@@ -72,12 +55,12 @@ var route = function(name,type,method) {
 		var data = {};
 
 		var check = function(specification,source) {
-			var datatype;
+			var keytype;
 			for(var key in specification) {
-				if (specification.hasOwnProperty(key) && (specification[key] instanceof DataTypeClass) && (source[key]||specification[key].required)) {
-					datatype = specification[key].type;
-					if(datatype.validate(source[key])) {
-						data[key] = datatype.cast(source[key]);
+				if (specification.hasOwnProperty(key) && datatype.isType(specification[key]) && (source[key]||specification[key].required)) {
+					keytype = specification[key];
+					if(keytype.validate(source[key])) {
+						data[key] = keytype.cast(source[key]);
 					} else {
 						var errormessage;
 						if (specification[key].required && !source[key]) {
@@ -86,7 +69,7 @@ var route = function(name,type,method) {
 							errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
 						}
 						var apiurl = req.protocol+'://'+req.headers.host+'/api/'+name+'/'+type+'.html';
-						res.status(449).send(error(errormessage,449,"Retry with " + datatype.type,{description:errormessage,specification:apiurl}));
+						res.status(449).send(error(errormessage,449,"Retry with " + keytype.name,{description:errormessage,specification:apiurl}));
 						return false;
 					}
 				}
@@ -269,37 +252,18 @@ var cache = Heimdall.cache = function(duration) {
 // Heimdall extended DataType creation method
 //  params:
 //    @datatype - the type object to create. Properties:
-//              - "name"     - the name of the datatype  (required)
-//				- "validate" - the validation function   (optional)
-//				- "cast"     - the type casting function (optional)
-var type = Heimdall.type = function(datatype) {
-	
-	var heimdall_type_not_found = "ERROR - A datatype was not provided";
-	if(!datatype) throw new Error(heimdall_type_not_found);
-	
-	var heimdall_type_name_not_valid = "ERROR - The datatype does not have a valid name";
-	if(typeof datatype.name !== 'string') throw new Error(heimdall_type_name_not_valid);
-	
-	var heimdall_type_exists = "ERROR - The datatype '"+datatype.name+"' already exists";
-	if(Heimdall.datatypes[datatype.name]) throw new Error(heimdall_type_exists);
-	
-	var validate = (typeof datatype.validate === 'function') ? datatype.validate : function(){return true;};
-	var cast = (typeof datatype.cast === 'function') ? datatype.cast     : function(val){return val;};
-
-	new DataType(datatype.name, validate, cast);	
-	
-};
+//              - "name"       - the name of the datatype           (required)
+//				- "definition" - the textual definition             (optional)
+//				- "validate"   - the validation function            (optional)
+//				- "cast"       - the type casting function          (optional)
+//				- "defaultvalue" - the default value to set         (optional)
+var type = Heimdall.type = datatype.add;
 
 // --------------------------------------------------------------------------
 // Heimdall extended DataType creation method
 //  params:
 //    @datatypes - an array of type objects to create
-var types = Heimdall.types = function(datatypes) {
-	var heimdall_types_not_found = "ERROR - An array of datatypes was not provided";
-	if(!datatypes || !(datatypes instanceof Array)) throw new Error(heimdall_types_not_found);
-
-	datatypes.map(type);
-};
+var types = Heimdall.types = datatype.add;
 
 // --------------------------------------------------------------------------
 // Heimdall Main entry point
@@ -336,7 +300,3 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 	return Heimdall;
 
 };
-
-// =============================================================================
-// Declare default datatypes
-types(require('./datatypes').defaults);

@@ -17,7 +17,8 @@
     "url": "https://github.com/binarymax/heimdall.git"
   },
   "dependencies": {
-    "moment": "2.5.x"
+    "moment": "2.5.x",
+    "datatype": "*"
   },
   "devDependencies": {
     "express": "3.x.x"
