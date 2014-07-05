@@ -21,6 +21,7 @@ var documentresource = Documenter.resource = function(resource){
 		},
 		name:resource.name,
 		description:resource.description,
+		type:'resource',
 		methods:{}
 	};
 
@@ -36,7 +37,7 @@ var documentmethod = Documenter.method = function(root,specification,verb,method
 	var url  = tools.buildroutestring(specification.name,root,method);
 	var type = specification.name + '.' + methodtype.toLowerCase();
 
-	var doc = {verb:verb,description:method.description,url:url,type:type};
+	var doc = {verb:verb,description:method.description,path:url,type:type};
 
 	verb = verb.toUpperCase();
 
@@ -47,8 +48,8 @@ var documentmethod = Documenter.method = function(root,specification,verb,method
 			for (var o in obj) {
 				if(obj.hasOwnProperty(o)) {
 					list.push({
-						key:o,
-						type:obj[o].type.type,
+						name:o,
+						type:obj[o].type,
 						description:obj[o].description,
 						required:obj[o].required
 					});

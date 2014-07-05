@@ -1,40 +1,50 @@
 style.
-	* { font-family:sans-serif; }
-	.heimdall-list {list-style:none;}
-	.heimdall-resources {margin:0;padding:0;}
-	.heimdall-resource {padding:0.5em; margin:0.5em;border-top:1px solid #333;}
-	.heimdall-description {margin-top:1em;}
-	.heimdall-method,.heimdall-details {display:inline-block;margin:0.5em;border:1px solid #ccc;padding:0.5em;vertical-align:top;}
-	.heimdall-method {width:12em;}
-	.heimdall-details {width:50em;}
-	.heimdall-parameters {margin:0.5em;}
+	#heimdallapi * { font-family:sans-serif; }
+	#heimdallapi .heimdall-list {list-style:none;margin:0px;}
+	#heimdallapi .heimdall-resources {margin:0;padding:0;}
+	#heimdallapi .heimdall-resource {padding:0.5em; margin:0.5em;border-top:1px solid #333;}
+	#heimdallapi .heimdall-description {margin-top:1em;}
+	#heimdallapi .heimdall-method,.heimdall-details {display:inline-block;margin:0.5em;border:1px solid #ccc;padding:0.5em;vertical-align:top;}
+	#heimdallapi .heimdall-method {width:12em;}
+	#heimdallapi .heimdall-details {width:50em;}
+	#heimdallapi .heimdall-parameters {margin:0.5em;margin-left:0px;padding-left:0px;}
+	#heimdallapi .heimdall-parameters > li {margin-left:0.5em;}
+	#heimdallapi h4 { margin:0px; }
 
-h1 API
-
-ul.heimdall-list.heimdall-resources
-	for resource in results
-		li.heimdall-resource
-			h2= resource.name
-			em= resource.description
-			ul.heimdall-list
-				for method in resource.methods
-					li
-						.heimdall-description= method.description
-						.heimdall-method
-							.heimdall-verb= method.verb
-							.heimdall-url= method.url
-						.heimdall-details 
-							ul.heimdall-list.heimdall-parameters
+#heimdallapi
+	h1 API
+	ul.heimdall-list.heimdall-resources
+		for resource in results
+			li.heimdall-resource
+				h2= resource.name
+				em= resource.description
+				ul.heimdall-list
+					for method in resource.methods
+						li
+							.heimdall-description
+								strong= method.description
+							.heimdall-method
+								.heimdall-verb= method.verb
+								.heimdall-path= method.path
+							.heimdall-details 
+								-var count=0
 								if method.query&&method.query.length
-									for query in method.query
-										li= '@' + query.key + ' <' + query.type + '> :: ' + query.description 
-								else
-									li
-										em This method has no querystring parameters
-							ul.heimdall-list.heimdall-parameters
+									-count++
+									h4 QueryString Parameters
+									ul.heimdall-list.heimdall-parameters
+										for query in method.query
+											li= '?' + query.name + ' <' + query.type + '> :: ' + query.description 
 								if method.body&&method.body.length
-									for body in method.body
-										li= '@' + body.key + ' <' + body.type + '> :: ' + body.description 
-								else
-									li
-										em This method has no body parameters
+									-count++
+									h4 Body Parameters
+									ul.heimdall-list.heimdall-parameters
+										for body in method.body
+											li= '@' + body.name + ' <' + body.type + '> :: ' + body.description 
+								if method.files&&method.files.length
+									-count++
+									h4 File Attachments
+									ul.heimdall-list.heimdall-parameters
+										for file in method.files
+											li= '@' + file.name + ' <' + file.type + '> :: ' + file.description 
+								if count===0
+									em No additional parameters specified

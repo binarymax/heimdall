@@ -121,11 +121,6 @@ var route = function(name,type,method) {
 	
 };
 
-
-
-// --------------------------------------------------------------------------
-// Builds a url route string, based on accepted method params 
-
 // --------------------------------------------------------------------------
 // Builds an REST resource based on an API specification 
 var buildmethodresource = function(name,root,resource,specification,verb,methodname,app) {
@@ -169,7 +164,6 @@ var register = function(filename,resource,app) {
 		}
 	}
 };
-
 
 
 // --------------------------------------------------------------------------

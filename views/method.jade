@@ -17,19 +17,19 @@ ul.heimdall-list.heimdall-resources
 			.heimdall-description= method.description
 			.heimdall-method
 				.heimdall-verb= method.verb
-				.heimdall-url= method.url
+				.heimdall-path= method.path
 			.heimdall-details 
 				ul.heimdall-list.heimdall-parameters
 					if method.query&&method.query.length
 						for query in method.query
-							li= '@' + query.key + ' <' + query.type + '> :: ' + query.description 
+							li= '@' + query.name + ' <' + query.type + '> :: ' + query.description 
 					else
 						li
 							em This method has no querystring parameters
 				ul.heimdall-list.heimdall-parameters
 					if method.body&&method.body.length
 						for body in method.body
-							li= '@' + body.key + ' <' + body.type + '> :: ' + body.description 
+							li= '@' + body.name + ' <' + body.type + '> :: ' + body.description 
 					else
 						li
 							em This method has no body parameters
