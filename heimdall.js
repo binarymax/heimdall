@@ -283,7 +283,11 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 			console.log('Heimdall found API specification',file);	
 			name = file.substr(0,file.indexOf(".js"));
 			resource = require(path+name);
-			register(path+name,resource,app);
+			if(resource.resources && resource.resources instanceof Array) {
+				resource.resources.map(function(apispec){ register(path+name,apispec,app) });
+			} else {
+				register(path+name,resource,app);
+			}
 		}
 	}
 	

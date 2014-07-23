@@ -21,11 +21,16 @@
     "datatype": "*"
   },
   "devDependencies": {
-    "express": "3.x.x"
+    "express": "3.x.x",
+    "mocha": "1.18.x",
+    "should": "4.0.x"
   },
   "main": "heimdall.js",
   "license": "MIT",
   "engines": {
     "node": ">=0.8"
+  },
+  "scripts": {
+    "test": "mocha test.js"
   }
 }
