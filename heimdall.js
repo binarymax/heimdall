@@ -277,10 +277,13 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 	var revar = /\w+\.js$/i;
 	var files = fs.readdirSync(path);
 	var file, name, resource;
+
+	console.log('Heimdall found',files.length,'API specifications');	
+	
 	for (var i=0,l=files.length;i<l;i++) {
 		file = files[i];
 		if (revar.test(file)) {
-			console.log('Heimdall found API specification',file);	
+			console.log(' └── ',file);	
 			name = file.substr(0,file.indexOf(".js"));
 			resource = require(path+name);
 			if(resource.resources && resource.resources instanceof Array) {
