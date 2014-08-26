@@ -32,6 +32,7 @@ var error = function() {
 	if (env === 'development') {
 		//Verbose console errors for development environments 
 		console.error(data.error);
+		console.trace();
 	}
 	return data;
 };
@@ -97,7 +98,8 @@ var route = function(name,type,method) {
 				}
 
 				if (err) {
-					res.json(error(req.headers.host,req.url,name+'.'+type,err));
+					if(!isNaN(parseInt(err.code))) res.status(parseInt(err.code));
+					res.json(error(req.headers.host,err.code,name+'.'+type,err));
 				} else if (req.heimdallchain) {
 					req.heimdallchain = null;
 					req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
