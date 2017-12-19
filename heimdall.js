@@ -12,8 +12,8 @@ var fs = require('fs');
 var datatype = require('datatype');
 
 var tools = require('./tools');
-var documenter = require('./documenter');
 var render = require('./renderer').render;
+var documenter = require('./documenter');
 
 //All valid resources loaded by Heimdall
 var resources = [];
@@ -34,7 +34,8 @@ var builtins  = {
 //Tool library shortcuts
 var format = tools.format;
 var error = function() {
-	var data = tools.error.apply(this,arguments);
+	var args = Array.prototype.slice.apply(arguments);
+	var data = tools.error.apply(this, args);
 	if (env === 'development') {
 		//Verbose console errors for development environments 
 		console.error(data.error);
@@ -46,6 +47,63 @@ var error = function() {
 // ==========================================================================
 // Heimdall Exports Object:
 var Heimdall = module.exports = {datatypes:datatype};
+
+
+// --------------------------------------------------------------------------
+// Checks a set of request fields with the specification 
+//  - Validates source data with defined datatypes (in-spec and builtins)
+//  - Groups into valid data and errors
+var check = function(validation,apiurl,specification,source) {
+	var data = validation.data;
+	var errors = validation.errors;
+	var keytype;
+
+	//Check the request against the specification
+	for(var key in specification) {
+		if (specification.hasOwnProperty(key) && datatype.isType(specification[key]) && (source[key]||specification[key].required)) {
+			keytype = specification[key];
+			if(keytype.validate(source[key])) {
+				data[key] = keytype.cast(source[key]);
+			} else {
+				var errormessage;
+				if (specification[key].required && !source[key]) {
+					errormessage = "Missing Required Parameter: a value must be supplied for '" + key + "'";
+				} else {
+					errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
+				}
+				errors.push({code:"449",message:"Retry with " + keytype.type,expects:keytype.description,description:errormessage,specification:apiurl});
+			}
+		}
+	}
+
+	if (source) {
+		//Check for builtin params
+		for(var key in builtins) {
+			if (builtins.hasOwnProperty(key) && source[key]) {
+				keytype = builtins[key];
+				if(keytype.validate(source[key])) {
+					data[key] = keytype.cast(source[key]);
+				} else {
+					var errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
+					errors.push({code:"449",message:"Retry with " + keytype.type,expects:keytype.description,description:errormessage,specification:apiurl});
+				}
+
+			}
+		}
+	}
+	
+	return {data:data,errors:errors};
+};	
+
+var command = function(name,type,data,resource,success,failure) {
+	try {
+		//Data object ready, call the resource command:
+		resource(name, type, data, success);
+	} catch (ex) {
+		//Exception in resource command
+		failure(ex);
+	}
+}
 
 // --------------------------------------------------------------------------
 // Creates a heimdall route for a request
@@ -59,86 +117,64 @@ var route = function(name,type,method) {
 	
 	routes[name+'_'+type] = function(req,res,next) {
 
-		var data = {};
+		var validation = {data:{},errors:[]};
+		var apiurl = req.protocol + '://'+req.headers.host+'/api/'+name+'/'+type+'.html';
 
-		var check = function(specification,source) {
-			if (source) {
-				var keytype;
-				for(var key in specification) {
-					if (specification.hasOwnProperty(key) && datatype.isType(specification[key]) && (source[key]||specification[key].required)) {
-						keytype = specification[key];
-						if(keytype.validate(source[key])) {
-							data[key] = keytype.cast(source[key]);
-						} else {
-							var errormessage;
-							if (specification[key].required && !source[key]) {
-								errormessage = "Missing Required Parameter: a value must be supplied for '" + key + "'";
-							} else {
-								errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
-							}
-							var apiurl = req.protocol+'://'+req.headers.host+'/api/'+name+'/'+type+'.html';
-							res.status(449).send(error(errormessage,449,"Retry with " + keytype.name,{description:errormessage,specification:apiurl}));
-							return false;
-						}
-					}
-				}
-				for(var key in builtins) {
-					if (builtins.hasOwnProperty(key) && source[key]) {
-						keytype = builtins[key];
-						if(keytype.validate(source[key])) {
-							data[key] = keytype.cast(source[key]);
-						} else {
-							var errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
-							var apiurl = req.protocol+'://'+req.headers.host+'/api/'+name+'/'+type+'.html';
-							res.status(449).send(error(errormessage,449,"Retry with " + keytype.name,{description:errormessage,specification:apiurl}));
-							return false;
-						}
-
-					}
-				}
-			}
-			return true;
-		};	
-
-		if(!check(method.query,req.query)) return false;
+		if(method.query  || req.query)  validation = check(validation,apiurl,method.query,req.query);
 		
-		if(!check(method.params,req.params)) return false;
+		if(method.params || req.params) validation = check(validation,apiurl,method.params,req.params);
 
-		if(!check(method.body,req.body)) return false;
+		if(method.body   || req.body)   validation = check(validation,apiurl,method.body,req.body);
 		
-		if(!check(method.files,req.files)) return false;
+		if(method.files  || req.files)  validation = check(validation,apiurl,method.files,req.files);
+
+		if(validation.errors.length) {
+			//Validation errors, respond to client
+			res.status(449).send(error("Invalid Data",449,"Validation Failed",validation.errors));
+			return false;
+		}
+
+		var data = validation.data;
 
 		//Add the session to the data
 		for(var s in req.session) { if(req.session.hasOwnProperty(s) && s!=='cookie') data[s] = req.session[s]; }
 
-		try {
-			//Data object ready, call the resource command:
-			resource(name, type, data, function(err,result) {
+		var commandSuccess = function(err,result) {
 
-				if (!isNaN(req.heimdallcacheduration)) {
-					res.setHeader('Cache-Control', 'public, max-age=' + req.heimdallcacheduration);
-				}
+			if (!isNaN(req.heimdallcacheduration)) {
+				res.setHeader('Cache-Control', 'public, max-age=' + req.heimdallcacheduration);
+			}
 
-				if (err) {
-					if(!isNaN(parseInt(err.code))) res.status(parseInt(err.code));
-					res.json(error(req.headers.host,err.code,name+'.'+type,err));
-				} else if (req.heimdallchain) {
-					req.heimdallchain = null;
-					req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
-					next();
-				} else if (data.redirect) {
-					res.redirect(data.redirect);
-				} else if (req.route.path.indexOf('.html')===-1) {
-					res.json(format(req.headers.host,req.url,name+'.'+type,result));
-				} else {
-					req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
-					next();
-				}
-			});
-		} catch (ex) {
-			//Exception in resource command
-			res.json(error(req.headers.host,req.url,"Internal Command Error",ex.toString()));			
+			if (err) {
+				if(!isNaN(parseInt(err.code))) res.status(parseInt(err.code));
+				res.json(error(req.headers.host,err.code,name+'.'+type,err));
+
+			} else if (req.heimdallchain) {
+				req.heimdallchain = null;
+				req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
+				next();
+
+			} else if (data.redirect) {
+				res.redirect(data.redirect);
+
+			} else if (req.route.path.indexOf('.html')===-1) {
+				res.json(format(req.headers.host,req.url,name+'.'+type,result));
+
+			} else {
+				req.heimdall = format(req.headers.host,req.url,name+'.'+type,result);
+				next();
+			}
+
 		}
+
+		var commandFailure = function(ex) {
+			res.json(error(req.headers.host,req.url,"Internal Command Error",ex.toString()));
+		}
+
+		//Call the resource in a try/catch block
+		command(name,type,data,resource,commandSuccess,commandFailure);
+
+
 	};
 	
 	return routes[name+'_'+type];
@@ -302,7 +338,7 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 	var files = fs.readdirSync(path);
 	var file, name, resource;
 
-	console.log('Heimdall found',files.length,'API specifications');
+	console.log('Heimdall found',files.length,'API specifications');	
 	
 	for (var i=0,l=files.length;i<l;i++) {
 		file = files[i];
