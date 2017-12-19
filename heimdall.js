@@ -25,6 +25,12 @@ var env;
 //Default security middleware, can override
 var security  = {authenticate:function(req,res,next){next();},administrator:function(req,res,next){res.send(403);}};
 
+//Builtin request parameters that are always allowed and do not need to be specified
+var builtins  = {
+	__start:datatype.int("The record number to start from"),
+	__rows:datatype.int("The number of rows to return")
+};
+
 //Tool library shortcuts
 var format = tools.format;
 var error = function() {
@@ -56,35 +62,51 @@ var route = function(name,type,method) {
 		var data = {};
 
 		var check = function(specification,source) {
-			var keytype;
-			for(var key in specification) {
-				if (specification.hasOwnProperty(key) && datatype.isType(specification[key]) && (source[key]||specification[key].required)) {
-					keytype = specification[key];
-					if(keytype.validate(source[key])) {
-						data[key] = keytype.cast(source[key]);
-					} else {
-						var errormessage;
-						if (specification[key].required && !source[key]) {
-							errormessage = "Missing Required Parameter: a value must be supplied for '" + key + "'";
+			if (source) {
+				var keytype;
+				for(var key in specification) {
+					if (specification.hasOwnProperty(key) && datatype.isType(specification[key]) && (source[key]||specification[key].required)) {
+						keytype = specification[key];
+						if(keytype.validate(source[key])) {
+							data[key] = keytype.cast(source[key]);
 						} else {
-							errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
+							var errormessage;
+							if (specification[key].required && !source[key]) {
+								errormessage = "Missing Required Parameter: a value must be supplied for '" + key + "'";
+							} else {
+								errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
+							}
+							var apiurl = req.protocol+'://'+req.headers.host+'/api/'+name+'/'+type+'.html';
+							res.status(449).send(error(errormessage,449,"Retry with " + keytype.name,{description:errormessage,specification:apiurl}));
+							return false;
 						}
-						var apiurl = req.protocol+'://'+req.headers.host+'/api/'+name+'/'+type+'.html';
-						res.status(449).send(error(errormessage,449,"Retry with " + keytype.name,{description:errormessage,specification:apiurl}));
-						return false;
+					}
+				}
+				for(var key in builtins) {
+					if (builtins.hasOwnProperty(key) && source[key]) {
+						keytype = builtins[key];
+						if(keytype.validate(source[key])) {
+							data[key] = keytype.cast(source[key]);
+						} else {
+							var errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
+							var apiurl = req.protocol+'://'+req.headers.host+'/api/'+name+'/'+type+'.html';
+							res.status(449).send(error(errormessage,449,"Retry with " + keytype.name,{description:errormessage,specification:apiurl}));
+							return false;
+						}
+
 					}
 				}
 			}
 			return true;
 		};	
 
-		if(method.query && !check(method.query,req.query)) return false;
+		if(!check(method.query,req.query)) return false;
 		
-		if(method.params && !check(method.params,req.params))  return false;
+		if(!check(method.params,req.params)) return false;
 
-		if(method.body && !check(method.body,req.body)) return false;
+		if(!check(method.body,req.body)) return false;
 		
-		if(method.files && !check(method.files,req.files)) return false;
+		if(!check(method.files,req.files)) return false;
 
 		//Add the session to the data
 		for(var s in req.session) { if(req.session.hasOwnProperty(s) && s!=='cookie') data[s] = req.session[s]; }
@@ -280,7 +302,7 @@ var load = Heimdall.load = function(path,app,auth,admin) {
 	var files = fs.readdirSync(path);
 	var file, name, resource;
 
-	console.log('Heimdall found',files.length,'API specifications');	
+	console.log('Heimdall found',files.length,'API specifications');
 	
 	for (var i=0,l=files.length;i<l;i++) {
 		file = files[i];
