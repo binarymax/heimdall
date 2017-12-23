@@ -58,25 +58,27 @@ var check = function(validation,apiurl,specification,source) {
 	var errors = validation.errors;
 	var keytype;
 
-	//Check the request against the specification
-	for(var key in specification) {
-		if (specification.hasOwnProperty(key) && datatype.isType(specification[key]) && (source[key]||specification[key].required)) {
-			keytype = specification[key];
-			if(keytype.validate(source[key])) {
-				data[key] = keytype.cast(source[key]);
-			} else {
-				var errormessage;
-				if (specification[key].required && !source[key]) {
-					errormessage = "Missing Required Parameter: a value must be supplied for '" + key + "'";
+	if (source) {
+		//Check the request against the specification
+		for(var key in specification) {
+			var sk = source[key];
+			var sp = specification[key];
+			if (specification.hasOwnProperty(key) && datatype.isType(specification[key]) && (source[key]||specification[key].required)) {
+				keytype = specification[key];
+				if(keytype.validate(source[key])) {
+					data[key] = keytype.cast(source[key]);
 				} else {
-					errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
+					var errormessage;
+					if (specification[key].required && !source[key]) {
+						errormessage = "Missing Required Parameter: a value must be supplied for '" + key + "'";
+					} else {
+						errormessage = "Type Error: '" + source[key] + "' is not a valid value for '" + key + "'";
+					}
+					errors.push({code:"449",message:"Retry with " + keytype.type,expects:keytype.description,description:errormessage,specification:apiurl});
 				}
-				errors.push({code:"449",message:"Retry with " + keytype.type,expects:keytype.description,description:errormessage,specification:apiurl});
 			}
 		}
-	}
 
-	if (source) {
 		//Check for builtin params
 		for(var key in builtins) {
 			if (builtins.hasOwnProperty(key) && source[key]) {
