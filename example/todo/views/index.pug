@@ -5,7 +5,7 @@ block content
 	ul
 		for item in results
 			li= item.description
-	form(action="/todo",method="POST")
+	form(action="/index.html",method="POST")
 		input(type="hidden",name="redirect",value="/index.html")
 		input(type="text",name="description")
 		input(type="submit",value="add")

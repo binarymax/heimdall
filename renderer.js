@@ -64,7 +64,7 @@ var render = Renderer.render = function(view) {
 
 	return function(req,res){
 
-		var notfound = function(){ res.send(404); };
+		var notfound = function(){ res.sendStatus(404); };
 
 		var viewname = parseview(view,req.params);
 		
@@ -78,7 +78,7 @@ var render = Renderer.render = function(view) {
 
 		} else {
 			//check if template exists
-			var filename = (viewname.indexOf('/heimdall/views/')>-1?viewname:process.cwd()+'/views/'+viewname)+'.jade';
+			var filename = (viewname.indexOf('/heimdall/views/')>-1?viewname:process.cwd()+'/views/'+viewname)+'.pug';
 			fs.exists(filename, function(exists) {
 
 				if (exists) { 
