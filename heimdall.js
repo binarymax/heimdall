@@ -31,6 +31,13 @@ var builtins  = {
 	__rows:datatype.int("The number of rows to return")
 };
 
+//List of property names that are reserved
+var reserved = {
+	session:true,
+	__start:true,
+	__rows:true
+};
+
 //Tool library shortcuts
 var format = tools.format;
 var error = function() {
@@ -138,8 +145,14 @@ var route = function(name,type,method) {
 
 		var data = validation.data;
 
-		//Add the session to the data
-		for(var s in req.session) { if(req.session.hasOwnProperty(s) && s!=='cookie') data[s] = req.session[s]; }
+		//Add the request session to the data
+		data.session = {};
+		for(var s in req.session) { 
+			if(req.session.hasOwnProperty(s) && s!=='cookie') {
+				data[s] = req.session[s]; //Convenience, with risk of override in the specification
+				data.session[s] = req.session[s]; //Safety, can only be set by Heimdall between request and controller
+			}
+		}
 
 		var commandSuccess = function(err,result) {
 
@@ -184,12 +197,34 @@ var route = function(name,type,method) {
 };
 
 // --------------------------------------------------------------------------
+// Verifies that an API specification is valid
+// Will panic and halt the application if an error is found
+var blessmethodresource = function(name,verb,method) {
+
+	var parts = 'query,params,body,files'.split(',');
+
+	for(var i=0;i<parts.length;i++) {
+		var part = method[parts[i]];
+		for(var key in part) {
+			if (reserved[key]) {
+				//Panic!
+				throw new Error('Unauthorized declaration of reserved specification key "' + key + '" in /' + name + '/' + verb);
+				process.exit();
+			}
+		}
+	}
+
+};
+
+// --------------------------------------------------------------------------
 // Builds an REST resource based on an API specification 
 var buildmethodresource = function(name,root,resource,specification,verb,methodname,app) {
 	var method = resource.api[methodname];
 	var routestring = tools.buildroutestring(name,root,method);
 	var methodnamelc = methodname.toLowerCase();
 	var verblc = verb.toLowerCase();
+
+	blessmethodresource(name,verb,method);
 
 	documenter.method(root,specification,verb,methodname,method);
 
